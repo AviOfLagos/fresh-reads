@@ -13,7 +13,7 @@ export function CommentsPanel({ articleId }: { articleId: string }) {
 
   const verdictColor =
     verdict.label === "Likely real"
-      ? "text-emerald-400 border-emerald-500/40 bg-emerald-500/10"
+      ? "text-success border-success/40 bg-success/10"
       : verdict.label === "Likely fake"
         ? "text-primary border-primary/40 bg-primary/10"
         : verdict.label === "Disputed"
@@ -51,7 +51,7 @@ export function CommentsPanel({ articleId }: { articleId: string }) {
       <div className="px-3 pt-3">
         <div className="flex h-2 w-full overflow-hidden bg-muted">
           <div
-            className="bg-emerald-500 transition-all duration-500"
+            className="bg-success transition-all duration-500"
             style={{ width: `${verdict.realPct}%` }}
             aria-label={`${verdict.realPct}% real`}
           />
@@ -62,7 +62,7 @@ export function CommentsPanel({ articleId }: { articleId: string }) {
           />
         </div>
         <div className="mt-1 flex items-center justify-between ticker-text text-[10px] uppercase tracking-widest text-muted-foreground">
-          <span className="text-emerald-400">{verdict.realPct}% real</span>
+          <span className="text-success">{verdict.realPct}% real</span>
           <span className="text-primary">{verdict.fakePct}% fake</span>
         </div>
       </div>
@@ -172,8 +172,8 @@ export function CommentsPanel({ articleId }: { articleId: string }) {
                   className={[
                     "inline-flex items-center gap-1 border px-2 py-1 ticker-text text-[10px] uppercase tracking-widest transition-colors",
                     c.myVote === "real"
-                      ? "border-emerald-500/60 bg-emerald-500/10 text-emerald-400"
-                      : "border-border text-muted-foreground hover:border-emerald-500/60 hover:text-emerald-400",
+                      ? "border-success/60 bg-success/10 text-success"
+                      : "border-border text-muted-foreground hover:border-success/60 hover:text-success",
                   ].join(" ")}
                 >
                   <ThumbsUp className="h-3 w-3" />
@@ -194,7 +194,7 @@ export function CommentsPanel({ articleId }: { articleId: string }) {
                 </button>
                 {total > 0 && (
                   <div className="flex h-1 flex-1 min-w-[60px] overflow-hidden bg-muted">
-                    <div className="bg-emerald-500" style={{ width: `${realPct}%` }} />
+                    <div className="bg-success" style={{ width: `${realPct}%` }} />
                     <div className="bg-primary" style={{ width: `${100 - realPct}%` }} />
                   </div>
                 )}

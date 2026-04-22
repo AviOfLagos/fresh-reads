@@ -5,6 +5,9 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
+  /* Custom breakpoints for tiny screens (smartwatches) */
+  --breakpoint-xs: 22rem; /* 352px */
+  --breakpoint-watch: 15rem; /* 240px – wearables */
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
