@@ -5,6 +5,9 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
+  /* Custom breakpoints for tiny screens (smartwatches) */
+  --breakpoint-xs: 22rem; /* 352px */
+  --breakpoint-watch: 15rem; /* 240px – wearables */
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -30,6 +33,8 @@
   --color-ring: var(--ring);
   --color-surface: var(--surface);
   --color-surface-elevated: var(--surface-elevated);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
   --font-serif: "Georgia", "Times New Roman", serif;
   --font-sans:
     "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -58,6 +63,9 @@
   --accent-foreground: oklch(0.16 0.005 270);
   --destructive: oklch(0.6 0.22 27);
   --destructive-foreground: oklch(0.99 0 0);
+  /* Verified / "real" signal */
+  --success: oklch(0.72 0.17 155);
+  --success-foreground: oklch(0.16 0.005 270);
   --border: oklch(0.28 0.008 270);
   --input: oklch(0.26 0.008 270);
   --ring: oklch(0.62 0.22 25);

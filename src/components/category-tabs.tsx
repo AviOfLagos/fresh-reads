@@ -5,8 +5,8 @@ export function CategoryTabs({ active }: { active: CategoryId }) {
   const navigate = useNavigate();
   return (
     <div className="border-b border-border bg-surface/50">
-      <div className="mx-auto max-w-7xl px-4">
-        <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide -mx-1 py-1">
+      <div className="mx-auto max-w-7xl px-2 sm:px-4">
+        <div className="flex items-center gap-0.5 overflow-x-auto scrollbar-hide -mx-1 py-1 sm:gap-1">
           {CATEGORIES.map((c) => {
             const isActive = c.id === active;
             return (
@@ -19,7 +19,7 @@ export function CategoryTabs({ active }: { active: CategoryId }) {
                   navigate({ to: "/", search: { category: c.id } });
                 }}
                 className={[
-                  "shrink-0 px-3 py-2.5 text-xs uppercase tracking-wider transition-all whitespace-nowrap",
+                  "shrink-0 px-2 py-2 text-[10px] uppercase tracking-wider transition-all whitespace-nowrap sm:px-3 sm:py-2.5 sm:text-xs",
                   "relative",
                   isActive
                     ? "text-foreground font-semibold"

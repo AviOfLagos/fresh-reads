@@ -1,6 +1,7 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import { Newspaper, Bookmark, Search } from "lucide-react";
 import { useEffect, useState } from "react";
+import { NotificationsButton } from "@/components/notifications-button";
 
 function LiveTime() {
   const [now, setNow] = useState<string>("");
@@ -33,20 +34,20 @@ export function SiteHeader() {
 
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur-md">
-      <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-4 px-4">
-        <Link to="/" className="flex items-center gap-2 group">
-          <div className="flex h-8 w-8 items-center justify-center bg-primary text-primary-foreground">
-            <span className="font-serif text-lg font-bold leading-none">N</span>
+      <div className="mx-auto flex h-12 max-w-7xl items-center justify-between gap-1 px-2 sm:h-14 sm:gap-4 sm:px-4">
+        <Link to="/" className="flex items-center gap-1.5 group shrink-0">
+          <div className="flex h-7 w-7 items-center justify-center bg-primary text-primary-foreground sm:h-8 sm:w-8">
+            <span className="font-serif text-base font-bold leading-none sm:text-lg">N</span>
           </div>
-          <div className="hidden sm:flex flex-col leading-tight">
-            <span className="font-serif text-base font-bold tracking-tight">NEWSROOM</span>
-            <span className="ticker-text text-[9px] text-muted-foreground uppercase tracking-widest">
+          <div className="hidden xs:flex flex-col leading-tight">
+            <span className="font-serif text-sm font-bold tracking-tight sm:text-base">NEWSROOM</span>
+            <span className="ticker-text text-[8px] text-muted-foreground uppercase tracking-widest sm:text-[9px]">
               Live Wire
             </span>
           </div>
         </Link>
 
-        <nav className="flex items-center gap-1">
+        <nav className="flex items-center gap-0.5 sm:gap-1">
           {navItems.map((item) => {
             const active =
               item.to === "/"
@@ -58,28 +59,32 @@ export function SiteHeader() {
                 key={item.to}
                 to={item.to}
                 className={[
-                  "flex items-center gap-1.5 px-3 py-2 text-xs uppercase tracking-wider transition-colors",
+                  "flex items-center gap-1.5 px-2 py-2 text-[11px] uppercase tracking-wider transition-colors sm:px-3 sm:text-xs",
                   "border-b-2",
                   active
                     ? "border-primary text-foreground"
                     : "border-transparent text-muted-foreground hover:text-foreground",
                 ].join(" ")}
+                aria-label={item.label}
               >
-                <Icon className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">{item.label}</span>
+                <Icon className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
+                <span className="hidden md:inline">{item.label}</span>
               </Link>
             );
           })}
         </nav>
 
-        <div className="hidden md:flex items-center gap-3">
-          <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1 sm:gap-3">
+          <NotificationsButton />
+          <div className="hidden lg:flex items-center gap-1.5">
             <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse-dot" />
             <span className="ticker-text text-[10px] uppercase tracking-widest text-muted-foreground">
               Live
             </span>
           </div>
-          <LiveTime />
+          <div className="hidden lg:block">
+            <LiveTime />
+          </div>
         </div>
       </div>
     </header>

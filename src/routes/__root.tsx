@@ -88,8 +88,8 @@ function RootComponent() {
         <main className="flex-1">
           <Outlet />
         </main>
-        <footer className="border-t border-border py-6 mt-12">
-          <div className="mx-auto max-w-7xl px-4 flex items-center justify-between text-xs text-muted-foreground">
+        <footer className="border-t border-border py-4 mt-8 sm:py-6 sm:mt-12">
+          <div className="mx-auto max-w-7xl px-3 flex flex-col gap-1 items-center text-center text-[10px] text-muted-foreground sm:flex-row sm:justify-between sm:px-4 sm:text-xs">
             <span className="ticker-text uppercase tracking-widest">
               © {new Date().getFullYear()} Newsroom
             </span>
