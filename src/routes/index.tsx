@@ -71,6 +71,13 @@ function FeedPage() {
     (a, b) => +new Date(b.publishedAt) - +new Date(a.publishedAt),
   );
 
+  // Cache the merged list so mock-source articles are also openable
+  // on the article details route.
+  useEffect(() => {
+    if (mockArticles.length) cacheArticles(mockArticles);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mockArticles.length, enabled.join(",")]);
+
   const isOffline = typeof navigator !== "undefined" && !navigator.onLine;
   const fallbackCached = isOffline && query.isError ? getAllCached() : [];
   const showOfflineFallback = !!fallbackCached.length;
