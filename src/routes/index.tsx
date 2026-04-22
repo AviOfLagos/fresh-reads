@@ -9,7 +9,9 @@ import { ArticleCard } from "@/components/article-card";
 import { FeedSkeleton } from "@/components/article-skeleton";
 import { ErrorState } from "@/components/error-state";
 import { CategoryTabs } from "@/components/category-tabs";
+import { SourceFilter } from "@/components/source-filter";
 import { cacheArticles, getAllCached } from "@/lib/article-cache";
+import { useSources } from "@/lib/use-sources";
 
 const validCategoryIds = CATEGORIES.map((c) => c.id) as [CategoryId, ...CategoryId[]];
 
