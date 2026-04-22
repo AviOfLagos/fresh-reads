@@ -49,13 +49,19 @@ export const Route = createRootRouteWithContext<RouterContext>()({
         content:
           "Real-time global news across business, tech, world, sports, science, and health from trusted sources.",
       },
-      { property: "og:title", content: "Newsroom — Live news & headlines" },
+      { property: "og:title", content: "Newsroom — Live news, headlines & analysis" },
       {
         property: "og:description",
         content: "Real-time global news from trusted sources.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
+      { name: "twitter:title", content: "Newsroom — Live news, headlines & analysis" },
+      { name: "description", content: "Daily Digest Delight is a news aggregator app that fetches and displays articles from multiple sources." },
+      { property: "og:description", content: "Daily Digest Delight is a news aggregator app that fetches and displays articles from multiple sources." },
+      { name: "twitter:description", content: "Daily Digest Delight is a news aggregator app that fetches and displays articles from multiple sources." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/a97c6dce-3208-45a3-b1b1-24128386af00/id-preview-fb4bda3f--f08191c7-2e9b-4c91-98d9-afa23685766d.lovable.app-1776897758370.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/a97c6dce-3208-45a3-b1b1-24128386af00/id-preview-fb4bda3f--f08191c7-2e9b-4c91-98d9-afa23685766d.lovable.app-1776897758370.png" },
     ],
     links: [{ rel: "stylesheet", href: appCss }],
   }),
@@ -88,8 +94,8 @@ function RootComponent() {
         <main className="flex-1">
           <Outlet />
         </main>
-        <footer className="border-t border-border py-4 mt-8 sm:py-6 sm:mt-12">
-          <div className="mx-auto max-w-7xl px-3 flex flex-col gap-1 items-center text-center text-[10px] text-muted-foreground sm:flex-row sm:justify-between sm:px-4 sm:text-xs">
+        <footer className="border-t border-border py-6 mt-12">
+          <div className="mx-auto max-w-7xl px-4 flex items-center justify-between text-xs text-muted-foreground">
             <span className="ticker-text uppercase tracking-widest">
               © {new Date().getFullYear()} Newsroom
             </span>
