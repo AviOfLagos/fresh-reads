@@ -73,16 +73,16 @@ export function ArticleCard({ article, variant = "default", index = 0 }: Props) 
             )}
           </button>
         </div>
-        <div className="absolute bottom-0 left-0 right-0 p-5">
-          <h2 className="headline text-2xl md:text-3xl font-bold text-foreground line-clamp-3 group-hover:text-primary transition-colors">
+        <div className="absolute bottom-0 left-0 right-0 p-3 sm:p-5">
+          <h2 className="headline text-base sm:text-2xl md:text-3xl font-bold text-foreground line-clamp-3 group-hover:text-primary transition-colors">
             {article.title}
           </h2>
           {article.description && (
-            <p className="mt-2 text-sm text-muted-foreground line-clamp-2">
+            <p className="mt-1.5 text-xs text-muted-foreground line-clamp-2 sm:mt-2 sm:text-sm">
               {article.description}
             </p>
           )}
-          <div className="mt-3 flex items-center gap-2 ticker-text text-[11px] uppercase tracking-widest text-muted-foreground">
+          <div className="mt-2 flex items-center gap-2 ticker-text text-[10px] uppercase tracking-widest text-muted-foreground sm:mt-3 sm:text-[11px]">
             <Clock className="h-3 w-3" />
             <span>{timeAgo}</span>
           </div>
@@ -96,10 +96,10 @@ export function ArticleCard({ article, variant = "default", index = 0 }: Props) 
       <Link
         to="/article/$id"
         params={{ id: article.id }}
-        className="group flex gap-3 border-b border-border py-3 transition-colors hover:bg-surface px-2 -mx-2 animate-fade-up"
+        className="group flex gap-2 border-b border-border py-2.5 transition-colors hover:bg-surface px-2 -mx-2 animate-fade-up sm:gap-3 sm:py-3"
         style={{ animationDelay: `${index * 30}ms` }}
       >
-        <div className="relative h-20 w-20 shrink-0 overflow-hidden bg-muted">
+        <div className="relative h-14 w-14 shrink-0 overflow-hidden bg-muted sm:h-20 sm:w-20">
           {article.image && !imgError ? (
             <img
               src={article.image}
@@ -110,17 +110,17 @@ export function ArticleCard({ article, variant = "default", index = 0 }: Props) 
             />
           ) : (
             <div className="flex h-full w-full items-center justify-center text-muted-foreground">
-              <span className="font-serif text-xl">N</span>
+              <span className="font-serif text-base sm:text-xl">N</span>
             </div>
           )}
         </div>
-        <div className="flex flex-1 flex-col gap-1 min-w-0">
-          <div className="flex items-center gap-2 ticker-text text-[10px] uppercase tracking-widest text-primary">
-            <span>{article.source.name}</span>
+        <div className="flex flex-1 flex-col gap-0.5 min-w-0 sm:gap-1">
+          <div className="flex items-center gap-1.5 ticker-text text-[9px] uppercase tracking-widest text-primary sm:gap-2 sm:text-[10px]">
+            <span className="truncate">{article.source.name}</span>
             <span className="text-muted-foreground">•</span>
-            <span className="text-muted-foreground">{timeAgo}</span>
+            <span className="text-muted-foreground truncate">{timeAgo}</span>
           </div>
-          <h3 className="headline text-base font-semibold line-clamp-2 group-hover:text-primary transition-colors">
+          <h3 className="headline text-sm font-semibold line-clamp-2 group-hover:text-primary transition-colors sm:text-base">
             {article.title}
           </h3>
         </div>
@@ -161,20 +161,20 @@ export function ArticleCard({ article, variant = "default", index = 0 }: Props) 
           )}
         </button>
       </div>
-      <div className="flex flex-1 flex-col p-4">
-        <div className="flex items-center gap-2 ticker-text text-[10px] uppercase tracking-widest mb-2">
-          <span className="text-primary font-semibold">{article.source.name}</span>
+      <div className="flex flex-1 flex-col p-3 sm:p-4">
+        <div className="flex items-center gap-1.5 ticker-text text-[9px] uppercase tracking-widest mb-1.5 sm:gap-2 sm:text-[10px] sm:mb-2">
+          <span className="text-primary font-semibold truncate">{article.source.name}</span>
           <span className="text-muted-foreground">•</span>
-          <span className="text-muted-foreground flex items-center gap-1">
+          <span className="text-muted-foreground flex items-center gap-1 shrink-0">
             <Clock className="h-3 w-3" />
             {timeAgo}
           </span>
         </div>
-        <h3 className="headline text-lg font-semibold line-clamp-3 group-hover:text-primary transition-colors">
+        <h3 className="headline text-base font-semibold line-clamp-3 group-hover:text-primary transition-colors sm:text-lg">
           {article.title}
         </h3>
         {article.description && (
-          <p className="mt-2 text-sm text-muted-foreground line-clamp-2">
+          <p className="mt-1.5 text-xs text-muted-foreground line-clamp-2 sm:mt-2 sm:text-sm">
             {article.description}
           </p>
         )}
