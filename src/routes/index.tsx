@@ -43,6 +43,9 @@ function FeedPage() {
     }
   }, [query.data]);
 
+  // Defined below — re-cache once the merged list is computed so mock-source
+  // re-attributed articles can also be opened from /article/$id.
+
   const categoryLabel = CATEGORIES.find((c) => c.id === category)?.label ?? "News";
   const rawArticles = query.data?.articles ?? [];
 
