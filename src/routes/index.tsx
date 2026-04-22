@@ -26,6 +26,7 @@ export const Route = createFileRoute("/")({
 
 function FeedPage() {
   const { category } = Route.useSearch();
+  const { enabled, all: allSources } = useSources();
 
   const query = useQuery({
     queryKey: ["news", "category", category],
@@ -43,7 +44,30 @@ function FeedPage() {
   }, [query.data]);
 
   const categoryLabel = CATEGORIES.find((c) => c.id === category)?.label ?? "News";
-  const articles = query.data?.articles ?? [];
+  const rawArticles = query.data?.articles ?? [];
+
+  // Multi-source mock: re-attribute a slice of real articles to enabled mock
+  // sources so toggling sources visibly changes the feed. See docs/multi-source.md
+  // for the production aggregation strategy.
+  const mockSources = allSources.filter((s) => !s.live && enabled.includes(s.id));
+  const liveOn = enabled.includes("gnews");
+  const baseArticles = liveOn ? rawArticles : [];
+  const mockArticles = mockSources.flatMap((src, srcIdx) =>
+    rawArticles.slice(srcIdx, srcIdx + 3).map((a, i) => ({
+      ...a,
+      id: `${a.id}_${src.id}`,
+      source: { name: src.name, url: a.source.url },
+      title: a.title,
+      // Stagger publish time so they don't collide with the live ones
+      publishedAt: new Date(
+        new Date(a.publishedAt).getTime() - (srcIdx * 3 + i + 1) * 60_000,
+      ).toISOString(),
+    })),
+  );
+  const articles = [...baseArticles, ...mockArticles].sort(
+    (a, b) => +new Date(b.publishedAt) - +new Date(a.publishedAt),
+  );
+
   const isOffline = typeof navigator !== "undefined" && !navigator.onLine;
   const fallbackCached = isOffline && query.isError ? getAllCached() : [];
   const showOfflineFallback = !!fallbackCached.length;
@@ -51,18 +75,24 @@ function FeedPage() {
   return (
     <>
       <CategoryTabs active={category} />
-      <div className="mx-auto max-w-7xl px-4 py-6 md:py-8">
-        <div className="mb-6 flex items-end justify-between gap-4 border-b border-border pb-4">
-          <div>
+      <div className="mx-auto max-w-7xl px-2 py-4 sm:px-4 sm:py-6 md:py-8">
+        <div className="mb-4 flex items-end justify-between gap-2 border-b border-border pb-3 sm:mb-6 sm:gap-4 sm:pb-4">
+          <div className="min-w-0">
             <div className="ticker-text text-[10px] uppercase tracking-widest text-primary mb-1">
               Section
             </div>
-            <h1 className="headline text-3xl md:text-4xl font-bold">{categoryLabel}</h1>
+            <h1 className="headline text-2xl font-bold sm:text-3xl md:text-4xl truncate">
+              {categoryLabel}
+            </h1>
           </div>
           <div className="hidden sm:flex items-center gap-2 ticker-text text-[10px] uppercase tracking-widest text-muted-foreground">
             <span className="h-1.5 w-1.5 bg-accent animate-pulse-dot" />
             {query.isFetching ? "Updating" : "Live"}
           </div>
+        </div>
+
+        <div className="mb-4 sm:mb-6">
+          <SourceFilter />
         </div>
 
         {query.isLoading && <FeedSkeleton />}
@@ -77,10 +107,10 @@ function FeedPage() {
 
         {showOfflineFallback && (
           <>
-            <div className="mb-4 border border-border bg-surface px-4 py-3 ticker-text text-xs uppercase tracking-widest text-muted-foreground animate-fade-in">
+            <div className="mb-4 border border-border bg-surface px-3 py-2.5 ticker-text text-[10px] uppercase tracking-widest text-muted-foreground animate-fade-in sm:px-4 sm:py-3 sm:text-xs">
               Showing cached articles · You are offline
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 gap-3 xs:grid-cols-2 lg:grid-cols-3 sm:gap-4">
               {fallbackCached.slice(0, 12).map((a, i) => (
                 <ArticleCard key={a.id} article={a} index={i} />
               ))}
@@ -89,16 +119,16 @@ function FeedPage() {
         )}
 
         {!query.isLoading && !query.isError && articles.length > 0 && (
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             <ArticleCard article={articles[0]} variant="hero" index={0} />
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 gap-3 xs:grid-cols-2 lg:grid-cols-3 sm:gap-4">
               {articles.slice(1, 10).map((a, i) => (
                 <ArticleCard key={a.id} article={a} index={i + 1} />
               ))}
             </div>
             {articles.length > 10 && (
               <div>
-                <h2 className="ticker-text text-xs uppercase tracking-widest text-muted-foreground mb-3 mt-8 border-t border-border pt-4">
+                <h2 className="ticker-text text-[10px] uppercase tracking-widest text-muted-foreground mb-2 mt-6 border-t border-border pt-3 sm:text-xs sm:mb-3 sm:mt-8 sm:pt-4">
                   More from {categoryLabel}
                 </h2>
                 <div className="divide-y divide-border">
@@ -112,7 +142,14 @@ function FeedPage() {
         )}
 
         {!query.isLoading && !query.isError && articles.length === 0 && (
-          <ErrorState message="No articles found." onRetry={() => query.refetch()} />
+          <ErrorState
+            message={
+              enabled.length === 0
+                ? "Enable at least one source to see articles."
+                : "No articles found for the selected sources."
+            }
+            onRetry={() => query.refetch()}
+          />
         )}
       </div>
     </>
