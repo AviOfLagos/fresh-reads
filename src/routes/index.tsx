@@ -12,11 +12,14 @@ import { CategoryTabs } from "@/components/category-tabs";
 import { SourceFilter } from "@/components/source-filter";
 import { cacheArticles, getAllCached } from "@/lib/article-cache";
 import { useSources } from "@/lib/use-sources";
+import { useInterests } from "@/lib/use-interests";
+import { topicsToQuery, COUNTRY_OPTIONS } from "@/lib/interests";
+import { Sparkles } from "lucide-react";
 
 const validCategoryIds = CATEGORIES.map((c) => c.id) as [CategoryId, ...CategoryId[]];
 
 const searchSchema = z.object({
-  category: fallback(z.enum(validCategoryIds), "general").default("general"),
+  category: fallback(z.enum(validCategoryIds), "technology").default("technology"),
 });
 
 export const Route = createFileRoute("/")({
@@ -27,11 +30,27 @@ export const Route = createFileRoute("/")({
 function FeedPage() {
   const { category } = Route.useSearch();
   const { enabled, all: allSources } = useSources();
+  const { interests } = useInterests();
+
+  // Build a personalized query from selected topics (only used on the
+  // default "technology" tab so explicit category browsing still works).
+  const personalize = interests.configured && interests.topics.length > 0;
+  const topicQuery = personalize ? topicsToQuery(interests.topics) : "";
+  const country = interests.country ?? undefined;
 
   const query = useQuery({
-    queryKey: ["news", "category", category],
+    queryKey: ["news", "category", category, topicQuery, country ?? ""],
     queryFn: async () => {
-      const res = await fetchNews({ data: { category, max: 20, lang: "en" } });
+      const res = await fetchNews({
+        data: {
+          category,
+          max: 20,
+          lang: "en",
+          // Use topic search on the default tab; otherwise honor the category.
+          query: category === "technology" && topicQuery ? topicQuery : undefined,
+          country,
+        },
+      });
       if (res.error) throw new Error(res.error);
       return res;
     },
