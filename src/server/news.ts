@@ -43,8 +43,9 @@ function normalize(arts: GNewsArticle[]): Article[] {
 }
 
 const inputSchema = z.object({
-  category: z.string().min(1).max(40).default("general"),
+  category: z.string().min(1).max(40).default("technology"),
   query: z.string().max(200).optional(),
+  country: z.string().min(2).max(5).optional(),
   lang: z.string().min(2).max(5).default("en"),
   max: z.number().int().min(1).max(25).default(20),
 });
@@ -67,6 +68,7 @@ export const fetchNews = createServerFn({ method: "GET" })
         max: String(data.max),
         apikey: apiKey,
       });
+      if (data.country) params.set("country", data.country);
 
       let endpoint: string;
       if (data.query && data.query.trim().length > 0) {
