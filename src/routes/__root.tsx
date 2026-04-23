@@ -9,6 +9,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "sonner";
 import { SiteHeader } from "@/components/site-header";
 import { OfflineBanner } from "@/components/offline-banner";
+import { InterestsAutoPrompt } from "@/components/interests-auto-prompt";
+import { InterestsButton } from "@/components/interests-button";
 
 import appCss from "../styles.css?url";
 
@@ -95,15 +97,17 @@ function RootComponent() {
           <Outlet />
         </main>
         <footer className="border-t border-border py-6 mt-12">
-          <div className="mx-auto max-w-7xl px-4 flex items-center justify-between text-xs text-muted-foreground">
+          <div className="mx-auto max-w-7xl px-4 flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground">
             <span className="ticker-text uppercase tracking-widest">
               © {new Date().getFullYear()} Newsroom
             </span>
+            <InterestsButton variant="footer" />
             <span className="ticker-text uppercase tracking-widest">
               Powered by GNews
             </span>
           </div>
         </footer>
+        <InterestsAutoPrompt />
         <Toaster
           theme="dark"
           position="bottom-right"

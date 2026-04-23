@@ -3,6 +3,7 @@ import { Newspaper, Bookmark, Search } from "lucide-react";
 import { useEffect, useState } from "react";
 import { NotificationsButton } from "@/components/notifications-button";
 import { AuthButton } from "@/components/auth-button";
+import { InterestsButton } from "@/components/interests-button";
 
 function LiveTime() {
   const [now, setNow] = useState<string>("");
@@ -76,6 +77,7 @@ export function SiteHeader() {
         </nav>
 
         <div className="flex items-center gap-1 sm:gap-3">
+          <InterestsButton />
           <NotificationsButton />
           <AuthButton />
           <div className="hidden lg:flex items-center gap-1.5">
