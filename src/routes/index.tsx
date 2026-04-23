@@ -107,12 +107,37 @@ function FeedPage() {
       <div className="mx-auto max-w-7xl px-2 py-4 sm:px-4 sm:py-6 md:py-8">
         <div className="mb-4 flex items-end justify-between gap-2 border-b border-border pb-3 sm:mb-6 sm:gap-4 sm:pb-4">
           <div className="min-w-0">
-            <div className="ticker-text text-[10px] uppercase tracking-widest text-primary mb-1">
-              Section
+            <div className="ticker-text text-[10px] uppercase tracking-widest text-primary mb-1 flex items-center gap-2">
+              <span>Section</span>
+              {personalize && category === "technology" && (
+                <span className="inline-flex items-center gap-1 text-accent">
+                  <Sparkles className="h-3 w-3" />
+                  For you
+                </span>
+              )}
             </div>
             <h1 className="headline text-2xl font-bold sm:text-3xl md:text-4xl truncate">
               {categoryLabel}
             </h1>
+            {interests.configured &&
+              (interests.topics.length > 0 || interests.country) && (
+                <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[10px] text-muted-foreground sm:text-xs">
+                  {interests.country && (
+                    <span className="ticker-text uppercase tracking-widest text-accent">
+                      {COUNTRY_OPTIONS.find((c) => c.code === interests.country)?.label ??
+                        interests.country.toUpperCase()}
+                    </span>
+                  )}
+                  {interests.topics.slice(0, 5).map((t) => (
+                    <span key={t} className="px-1.5 py-0.5 border border-border">
+                      {t}
+                    </span>
+                  ))}
+                  {interests.topics.length > 5 && (
+                    <span>+{interests.topics.length - 5}</span>
+                  )}
+                </div>
+              )}
           </div>
           <div className="hidden sm:flex items-center gap-2 ticker-text text-[10px] uppercase tracking-widest text-muted-foreground">
             <span className="h-1.5 w-1.5 bg-accent animate-pulse-dot" />
