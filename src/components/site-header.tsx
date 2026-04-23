@@ -2,6 +2,7 @@ import { Link, useLocation } from "@tanstack/react-router";
 import { Newspaper, Bookmark, Search } from "lucide-react";
 import { useEffect, useState } from "react";
 import { NotificationsButton } from "@/components/notifications-button";
+import { AuthButton } from "@/components/auth-button";
 
 function LiveTime() {
   const [now, setNow] = useState<string>("");
@@ -76,6 +77,7 @@ export function SiteHeader() {
 
         <div className="flex items-center gap-1 sm:gap-3">
           <NotificationsButton />
+          <AuthButton />
           <div className="hidden lg:flex items-center gap-1.5">
             <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse-dot" />
             <span className="ticker-text text-[10px] uppercase tracking-widest text-muted-foreground">
