@@ -1,17 +1,20 @@
 # Comments & Community Fact-Check
 
-> Status: **UI prototype.** Comments and votes live in `localStorage`,
-> seeded with three example comments per article.
+> Status: **Live.** Comments and votes are persisted in Lovable Cloud
+> (Postgres) with row-level security. Auth uses Supabase email + password.
+> See `src/lib/use-comments.ts`, `src/components/comments-panel.tsx`, and
+> the `comments` / `comment_votes` / `user_roles` tables.
 
-## Prototype features
+## What it does
 
-- Per-article comment thread with a composer.
-- "I'm a verified reporter / expert" checkbox + credentials field that
-  produces a **Verified** badge on the comment.
-- Two-button verdict per comment: **Real** / **Fake** (toggle, single vote
-  per device).
+- Per-article comment thread with a composer (sign-in required).
+- Two-button verdict per comment: **Real** / **Fake** (one vote per user;
+  re-clicking removes the vote, switching flips it).
 - A header verdict bar that aggregates votes across all comments into one of
   *Likely real*, *Disputed*, *Likely fake*, or *No votes yet*.
+- "Verified" badges render only when a comment author currently holds the
+  `verified` role in `user_roles`. The role is **granted, not claimed** —
+  see "Verified authors" below.
 
 ## Production plan
 
