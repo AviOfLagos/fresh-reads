@@ -14,6 +14,75 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_chat_messages: {
+        Row: {
+          article_id: string
+          content: string
+          created_at: string
+          id: string
+          role: string
+          session_id: string
+          user_id: string
+        }
+        Insert: {
+          article_id: string
+          content: string
+          created_at?: string
+          id?: string
+          role: string
+          session_id: string
+          user_id: string
+        }
+        Update: {
+          article_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          role?: string
+          session_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      article_evidence: {
+        Row: {
+          article_id: string
+          author_display: string
+          body: string | null
+          created_at: string
+          hidden: boolean
+          id: string
+          image_url: string | null
+          kind: string
+          source_url: string | null
+          user_id: string
+        }
+        Insert: {
+          article_id: string
+          author_display: string
+          body?: string | null
+          created_at?: string
+          hidden?: boolean
+          id?: string
+          image_url?: string | null
+          kind: string
+          source_url?: string | null
+          user_id: string
+        }
+        Update: {
+          article_id?: string
+          author_display?: string
+          body?: string | null
+          created_at?: string
+          hidden?: boolean
+          id?: string
+          image_url?: string | null
+          kind?: string
+          source_url?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       comment_votes: {
         Row: {
           comment_id: string
