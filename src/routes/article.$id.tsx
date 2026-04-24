@@ -7,6 +7,8 @@ import { getCachedArticle } from "@/lib/article-cache";
 import { useBookmarks } from "@/lib/bookmarks";
 import { ArticleSummary } from "@/components/article-summary";
 import { CommentsPanel } from "@/components/comments-panel";
+import { EvidencePanel } from "@/components/evidence-panel";
+import { AskAiPanel } from "@/components/ask-ai-panel";
 import type { Article } from "@/lib/news-types";
 
 export const Route = createFileRoute("/article/$id")({
@@ -205,6 +207,12 @@ function ArticlePage() {
           {article.source.name}
         </a>
       </p>
+
+      {/* Ask AI about this article */}
+      <AskAiPanel article={article} />
+
+      {/* User-submitted supporting evidence */}
+      <EvidencePanel articleId={article.id} />
 
       {/* Community fact-check + comments */}
       <CommentsPanel articleId={article.id} />
