@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { X, LogIn, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
