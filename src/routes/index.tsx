@@ -29,7 +29,7 @@ export const Route = createFileRoute("/")({
 
 function FeedPage() {
   const { category } = Route.useSearch();
-  const { enabled, all: allSources } = useSources();
+  const { enabled } = useSources();
   const { interests } = useInterests();
 
   // Build a personalized query from selected topics (only used on the
