@@ -5,6 +5,10 @@ export function SourceFilter() {
   const { all, isEnabled, toggle } = useSources();
   const enabledCount = all.filter((s) => isEnabled(s.id)).length;
 
+  // With a single live provider there's nothing useful to toggle. Hide the
+  // control entirely until a second provider is wired up.
+  if (all.length < 2) return null;
+
   return (
     <div className="border border-border bg-surface/50 animate-fade-in">
       <div className="flex items-center justify-between border-b border-border px-3 py-2">
@@ -38,11 +42,6 @@ export function SourceFilter() {
               )}
               <span className="font-mono">{s.short}</span>
               <span className="hidden xs:inline">{s.name}</span>
-              {!s.live && (
-                <span className="ml-1 rounded-sm bg-muted px-1 text-[9px] text-muted-foreground">
-                  mock
-                </span>
-              )}
             </button>
           );
         })}
