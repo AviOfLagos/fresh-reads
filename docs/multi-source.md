@@ -1,22 +1,21 @@
 # Multi-Source News Aggregation
 
-> Status: **UI prototype with mock sources.** Live source: GNews. Mock sources:
-> The Guardian, Reuters, Associated Press, BBC News, NewsAPI.org.
+> Status: **Live with a single provider (GNews).** Additional providers will
+> be added behind real adapters — no mock data is shipped to users.
 
 ## Goal
 
 Let a user enable/disable any combination of providers and see a single,
 de-duplicated, time-ordered feed where each article is clearly attributed.
 
-## Current prototype
+## Current state
 
-- `src/lib/sources.ts` — registry of sources and `localStorage` persistence
-  of the user's enabled set.
-- `src/components/source-filter.tsx` — chip toggle row, marked **mock** for
-  any source we haven't wired yet.
-- `src/routes/index.tsx` — when a mock source is enabled, the page
-  re-attributes a slice of GNews articles to that source so the feed visibly
-  changes. This is purely cosmetic so reviewers can interact with the toggle.
+- `src/lib/sources.ts` — registry of live sources and `localStorage`
+  persistence of the user's enabled set.
+- `src/components/source-filter.tsx` — chip toggle row. Hidden when only one
+  provider is registered (no point toggling a single source).
+- `src/routes/index.tsx` — straight pass-through of the GNews response;
+  nothing is fabricated client-side.
 
 ## Production plan
 
