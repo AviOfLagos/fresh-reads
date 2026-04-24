@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { CATEGORIES, type CategoryId } from "@/lib/news-types";
 import { COUNTRY_OPTIONS, TOPIC_SUGGESTIONS } from "@/lib/interests";
 import { useInterests } from "@/lib/use-interests";
+import { InterestsPreview } from "@/components/interests-preview";
 import { Sparkles, MapPin, Tag, X, Plus } from "lucide-react";
 
 interface Props {
@@ -204,6 +205,15 @@ export function InterestsModal({ open, onOpenChange }: Props) {
                 className="rounded-none border-border bg-background text-sm h-9"
               />
             </div>
+          </section>
+
+          {/* Live preview */}
+          <section>
+            <InterestsPreview
+              categories={categories}
+              topics={topics}
+              country={country}
+            />
           </section>
         </div>
 
