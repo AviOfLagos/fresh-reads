@@ -1,5 +1,5 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import { Newspaper, Bookmark, Search } from "lucide-react";
+import { Newspaper, Bookmark, Search, Calendar } from "lucide-react";
 import { useEffect, useState } from "react";
 import { NotificationsButton } from "@/components/notifications-button";
 import { AuthButton } from "@/components/auth-button";
@@ -30,6 +30,7 @@ export function SiteHeader() {
   const location = useLocation();
   const navItems = [
     { to: "/", label: "Feed", icon: Newspaper },
+    { to: "/events", label: "Events", icon: Calendar },
     { to: "/search", label: "Search", icon: Search },
     { to: "/bookmarks", label: "Saved", icon: Bookmark },
   ] as const;
