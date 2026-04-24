@@ -1,6 +1,6 @@
-// Mock multi-source registry. In production these IDs would map to
-// adapters that normalize each provider's response into our `Article` shape.
-// See docs/multi-source.md for the real implementation plan.
+// Live news source registry. Each entry maps to a real upstream provider.
+// To add another live provider, implement an adapter that normalizes its
+// response into our `Article` shape and call it from `src/server/news.ts`.
 
 export interface NewsSource {
   id: string;
@@ -18,49 +18,9 @@ export const SOURCES: NewsSource[] = [
     id: "gnews",
     name: "GNews",
     short: "GN",
-    description: "Aggregated global headlines (live)",
+    description: "Aggregated global headlines from 60k+ publishers",
     live: true,
     accent: "text-primary",
-  },
-  {
-    id: "guardian",
-    name: "The Guardian",
-    short: "GU",
-    description: "Long-form analysis & investigations (mock)",
-    live: false,
-    accent: "text-accent",
-  },
-  {
-    id: "reuters",
-    name: "Reuters",
-    short: "RT",
-    description: "Wire service breaking news (mock)",
-    live: false,
-    accent: "text-foreground",
-  },
-  {
-    id: "ap",
-    name: "Associated Press",
-    short: "AP",
-    description: "Verified, neutral wire reporting (mock)",
-    live: false,
-    accent: "text-foreground",
-  },
-  {
-    id: "bbc",
-    name: "BBC News",
-    short: "BB",
-    description: "International public broadcaster (mock)",
-    live: false,
-    accent: "text-foreground",
-  },
-  {
-    id: "newsapi",
-    name: "NewsAPI.org",
-    short: "NA",
-    description: "Multi-publisher aggregator (mock)",
-    live: false,
-    accent: "text-foreground",
   },
 ];
 
@@ -74,7 +34,12 @@ export function readEnabledSources(): string[] {
     const raw = window.localStorage.getItem(KEY);
     if (!raw) return DEFAULT_ENABLED_SOURCES;
     const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed)) return parsed.filter((x) => typeof x === "string");
+    if (Array.isArray(parsed)) {
+      const valid = parsed.filter(
+        (x) => typeof x === "string" && SOURCES.some((s) => s.id === x),
+      );
+      return valid.length ? valid : DEFAULT_ENABLED_SOURCES;
+    }
     return DEFAULT_ENABLED_SOURCES;
   } catch {
     return DEFAULT_ENABLED_SOURCES;

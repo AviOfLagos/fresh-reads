@@ -1,14 +1,16 @@
 # Notifications & Topic Follow-Ups
 
-> Status: **UI prototype with mock notifications stored in `localStorage`.**
+> Status: **Topic subscriptions persist locally; the notifications inbox stays
+> empty until a real backend job populates it.** No fake notifications are
+> seeded.
 
-## What the prototype does
+## What ships today
 
-- `src/lib/subscriptions.ts` — store of followed topics + a fake notification
-  inbox. Subscribing seeds one mock follow-up so the UX is visible.
+- `src/lib/subscriptions.ts` — store of followed topics in `localStorage`.
+  Subscribing only records the topic; nothing fabricated lands in the inbox.
 - `src/components/notifications-button.tsx` — bell button in the site header
-  with an unread count badge, a follow/unfollow chip row, and an inbox panel
-  that auto-marks-read after open.
+  with an unread count badge (always 0 until real notifications arrive), a
+  follow/unfollow chip row, and an empty-state inbox panel.
 
 ## What "channeling notifications for follow-up events" means
 

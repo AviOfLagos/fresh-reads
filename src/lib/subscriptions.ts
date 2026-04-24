@@ -1,5 +1,7 @@
-// Mock topic subscription + notification inbox.
-// Real implementation plan: docs/notifications.md
+// Topic subscription + notification inbox.
+// Subscriptions are persisted locally. The notifications inbox stays empty
+// until a real cron-driven backend job populates it — see
+// docs/notifications.md for the production plan.
 
 import { useEffect, useState, useCallback } from "react";
 
@@ -43,34 +45,6 @@ export const SUGGESTED_TOPICS = [
   "Federal Reserve",
 ];
 
-function seedNotifications(topics: string[]): Notification[] {
-  if (!topics.length) return [];
-  const now = Date.now();
-  const samples: Array<Omit<Notification, "id" | "read" | "publishedAt">> = [
-    {
-      topic: topics[0],
-      title: `New development in ${topics[0]}`,
-      summary: `A follow-up story has been published about ${topics[0]}. Tap to read the latest update.`,
-    },
-    {
-      topic: topics[Math.min(1, topics.length - 1)],
-      title: `Live update: ${topics[Math.min(1, topics.length - 1)]}`,
-      summary: "Two new sources are reporting the same event — opening it now will show all angles.",
-    },
-    {
-      topic: topics[0],
-      title: `Background brief on ${topics[0]}`,
-      summary: "We bundled three earlier articles into a 60-second catch-up.",
-    },
-  ];
-  return samples.map((s, i) => ({
-    ...s,
-    id: `n_${now}_${i}`,
-    publishedAt: new Date(now - i * 1000 * 60 * 17).toISOString(),
-    read: false,
-  }));
-}
-
 export function useSubscriptions() {
   const [topics, setTopics] = useState<string[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -97,12 +71,7 @@ export function useSubscriptions() {
     if (!t) return;
     const current = read<string[]>(SUBS_KEY, []);
     if (current.includes(t)) return;
-    const next = [t, ...current];
-    write(SUBS_KEY, next, "subscriptions:changed");
-    // Seed a fake follow-up notification so the UX shows what would arrive.
-    const existing = read<Notification[]>(NOTIF_KEY, []);
-    const seeded = seedNotifications([t]).slice(0, 1);
-    write(NOTIF_KEY, [...seeded, ...existing], "notifications:changed");
+    write(SUBS_KEY, [t, ...current], "subscriptions:changed");
   }, []);
 
   const unsubscribe = useCallback((topic: string) => {

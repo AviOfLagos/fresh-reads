@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { X, LogIn, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -30,6 +30,21 @@ export function AuthDialog({
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    // Lock body scroll while modal is open
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [open, onClose]);
 
   if (!open) return null;
 
@@ -77,11 +92,14 @@ export function AuthDialog({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-3 animate-fade-in"
+      className="fixed inset-0 z-50 flex items-start sm:items-center justify-center overflow-y-auto bg-black/60 p-3 animate-fade-in"
       onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-label={mode === "signup" ? "Create an account" : "Sign in"}
     >
       <div
-        className="relative w-full max-w-sm border border-border bg-surface p-4 sm:p-6 animate-fade-up"
+        className="relative my-auto w-full max-w-sm max-h-[calc(100dvh-1.5rem)] overflow-y-auto border border-border bg-surface p-4 sm:p-6 animate-fade-up"
         onClick={(e) => e.stopPropagation()}
       >
         <button

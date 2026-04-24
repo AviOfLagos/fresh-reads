@@ -143,7 +143,7 @@ function ArticlePage() {
         </div>
       )}
 
-      {/* AI Summary (mock) */}
+      {/* AI summary */}
       <ArticleSummary article={article} />
 
       {article.content && (
@@ -206,7 +206,7 @@ function ArticlePage() {
         </a>
       </p>
 
-      {/* Community fact-check + comments (mock) */}
+      {/* Community fact-check + comments */}
       <CommentsPanel articleId={article.id} />
     </article>
   );

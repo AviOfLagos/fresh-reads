@@ -29,7 +29,7 @@ export const Route = createFileRoute("/")({
 
 function FeedPage() {
   const { category } = Route.useSearch();
-  const { enabled, all: allSources } = useSources();
+  const { enabled } = useSources();
   const { interests } = useInterests();
 
   // Build a personalized query from selected topics (only used on the
@@ -62,40 +62,9 @@ function FeedPage() {
     }
   }, [query.data]);
 
-  // Defined below — re-cache once the merged list is computed so mock-source
-  // re-attributed articles can also be opened from /article/$id.
-
   const categoryLabel = CATEGORIES.find((c) => c.id === category)?.label ?? "News";
-  const rawArticles = query.data?.articles ?? [];
-
-  // Multi-source mock: re-attribute a slice of real articles to enabled mock
-  // sources so toggling sources visibly changes the feed. See docs/multi-source.md
-  // for the production aggregation strategy.
-  const mockSources = allSources.filter((s) => !s.live && enabled.includes(s.id));
   const liveOn = enabled.includes("gnews");
-  const baseArticles = liveOn ? rawArticles : [];
-  const mockArticles = mockSources.flatMap((src, srcIdx) =>
-    rawArticles.slice(srcIdx, srcIdx + 3).map((a, i) => ({
-      ...a,
-      id: `${a.id}_${src.id}`,
-      source: { name: src.name, url: a.source.url },
-      title: a.title,
-      // Stagger publish time so they don't collide with the live ones
-      publishedAt: new Date(
-        new Date(a.publishedAt).getTime() - (srcIdx * 3 + i + 1) * 60_000,
-      ).toISOString(),
-    })),
-  );
-  const articles = [...baseArticles, ...mockArticles].sort(
-    (a, b) => +new Date(b.publishedAt) - +new Date(a.publishedAt),
-  );
-
-  // Cache the merged list so mock-source articles are also openable
-  // on the article details route.
-  useEffect(() => {
-    if (mockArticles.length) cacheArticles(mockArticles);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mockArticles.length, enabled.join(",")]);
+  const articles = liveOn ? query.data?.articles ?? [] : [];
 
   const isOffline = typeof navigator !== "undefined" && !navigator.onLine;
   const fallbackCached = isOffline && query.isError ? getAllCached() : [];
