@@ -14,6 +14,16 @@ export interface EvidenceRow {
   source_url: string | null;
   hidden: boolean;
   created_at: string;
+  // Vote aggregates (client-side enriched)
+  upvotes: number;
+  downvotes: number;
+  myVote: 1 | -1 | 0;
+}
+
+interface VoteRow {
+  evidence_id: string;
+  user_id: string;
+  vote: number;
 }
 
 export function useEvidence(articleId: string, currentUserId: string | null) {
@@ -37,9 +47,38 @@ export function useEvidence(articleId: string, currentUserId: string | null) {
       setLoading(false);
       return;
     }
-    setItems((data ?? []) as EvidenceRow[]);
+
+    const rows = (data ?? []) as Omit<EvidenceRow, "upvotes" | "downvotes" | "myVote">[];
+    const ids = rows.map((r) => r.id);
+
+    // Fetch all votes for these evidence rows
+    let votes: VoteRow[] = [];
+    if (ids.length > 0) {
+      const { data: vd } = await supabase
+        .from("evidence_votes")
+        .select("evidence_id, user_id, vote")
+        .in("evidence_id", ids);
+      votes = (vd ?? []) as VoteRow[];
+    }
+
+    const enriched: EvidenceRow[] = rows.map((r) => {
+      let up = 0;
+      let down = 0;
+      let mine: 1 | -1 | 0 = 0;
+      for (const v of votes) {
+        if (v.evidence_id !== r.id) continue;
+        if (v.vote === 1) up++;
+        else if (v.vote === -1) down++;
+        if (currentUserId && v.user_id === currentUserId) {
+          mine = v.vote === 1 ? 1 : -1;
+        }
+      }
+      return { ...r, upvotes: up, downvotes: down, myVote: mine };
+    });
+
+    setItems(enriched);
     setLoading(false);
-  }, [articleId]);
+  }, [articleId, currentUserId]);
 
   useEffect(() => {
     setLoading(true);
@@ -120,5 +159,79 @@ export function useEvidence(articleId: string, currentUserId: string | null) {
     [refresh],
   );
 
-  return { items, loading, error, submit, remove, refresh };
+  /** Cast / change / remove a vote. Pass 1 (up), -1 (down). Same value clears. */
+  const vote = useCallback(
+    async (evidenceId: string, value: 1 | -1) => {
+      if (!currentUserId) return { error: "Sign in to vote." };
+
+      // Optimistic update
+      let next = items.map((it) => {
+        if (it.id !== evidenceId) return it;
+        const prev = it.myVote;
+        let upvotes = it.upvotes;
+        let downvotes = it.downvotes;
+        let myVote: 1 | -1 | 0 = prev;
+
+        if (prev === value) {
+          // toggle off
+          if (value === 1) upvotes -= 1;
+          else downvotes -= 1;
+          myVote = 0;
+        } else if (prev === 0) {
+          if (value === 1) upvotes += 1;
+          else downvotes += 1;
+          myVote = value;
+        } else {
+          // switch
+          if (value === 1) {
+            upvotes += 1;
+            downvotes -= 1;
+          } else {
+            downvotes += 1;
+            upvotes -= 1;
+          }
+          myVote = value;
+        }
+        return { ...it, upvotes, downvotes, myVote };
+      });
+      setItems(next);
+
+      const target = items.find((i) => i.id === evidenceId);
+      const prevVote = target?.myVote ?? 0;
+
+      try {
+        if (prevVote === value) {
+          // Toggle off → delete
+          const { error: de } = await supabase
+            .from("evidence_votes")
+            .delete()
+            .eq("evidence_id", evidenceId)
+            .eq("user_id", currentUserId);
+          if (de) throw de;
+        } else {
+          // Upsert
+          const { error: ue } = await supabase
+            .from("evidence_votes")
+            .upsert(
+              {
+                evidence_id: evidenceId,
+                user_id: currentUserId,
+                vote: value,
+              },
+              { onConflict: "evidence_id,user_id" },
+            );
+          if (ue) throw ue;
+        }
+        return { error: null };
+      } catch (err) {
+        // Revert on failure
+        await refresh();
+        const msg = err instanceof Error ? err.message : "Vote failed.";
+        return { error: msg };
+      }
+    },
+    [items, currentUserId, refresh],
+  );
+
+  return { items, loading, error, submit, remove, vote, refresh };
 }

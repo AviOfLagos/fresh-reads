@@ -1,16 +1,31 @@
 import { useState } from "react";
-import { Link2, Image as ImageIcon, FileText, Loader2, LogIn, Trash2, ExternalLink, AlertTriangle, ShieldCheck } from "lucide-react";
+import {
+  Link2,
+  Image as ImageIcon,
+  FileText,
+  Loader2,
+  LogIn,
+  Trash2,
+  ExternalLink,
+  AlertTriangle,
+  ShieldCheck,
+  ArrowBigUp,
+  ArrowBigDown,
+} from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/use-auth";
-import { useEvidence, type EvidenceKind } from "@/lib/use-evidence";
+import { useEvidence, type EvidenceKind, type EvidenceRow } from "@/lib/use-evidence";
 import { AuthDialog } from "@/components/auth-dialog";
 
 type Tab = EvidenceKind;
 
 export function EvidencePanel({ articleId }: { articleId: string }) {
   const { user } = useAuth();
-  const { items, loading, error, submit, remove } = useEvidence(articleId, user?.id ?? null);
+  const { items, loading, error, submit, remove, vote } = useEvidence(
+    articleId,
+    user?.id ?? null,
+  );
 
   const [tab, setTab] = useState<Tab>("text");
   const [text, setText] = useState("");
@@ -44,7 +59,10 @@ export function EvidencePanel({ articleId }: { articleId: string }) {
       toast.error(res.error);
       return;
     }
-    setText(""); setImageUrl(""); setSourceUrl(""); setCaption("");
+    setText("");
+    setImageUrl("");
+    setSourceUrl("");
+    setCaption("");
     toast.success("Evidence added");
   };
 
@@ -54,7 +72,24 @@ export function EvidencePanel({ articleId }: { articleId: string }) {
     else toast.success("Removed");
   };
 
-  const TabBtn = ({ id, label, Icon }: { id: Tab; label: string; Icon: typeof FileText }) => (
+  const handleVote = async (it: EvidenceRow, value: 1 | -1) => {
+    if (!user) {
+      setAuthOpen(true);
+      return;
+    }
+    const res = await vote(it.id, value);
+    if (res.error) toast.error(res.error);
+  };
+
+  const TabBtn = ({
+    id,
+    label,
+    Icon,
+  }: {
+    id: Tab;
+    label: string;
+    Icon: typeof FileText;
+  }) => (
     <button
       type="button"
       onClick={() => setTab(id)}
@@ -191,61 +226,133 @@ export function EvidencePanel({ articleId }: { articleId: string }) {
             {items.map((it) => {
               let when = "just now";
               try {
-                when = formatDistanceToNow(new Date(it.created_at), { addSuffix: true });
-              } catch { /* ignore */ }
+                when = formatDistanceToNow(new Date(it.created_at), {
+                  addSuffix: true,
+                });
+              } catch {
+                /* ignore */
+              }
               const mine = user?.id === it.user_id;
+              const score = it.upvotes - it.downvotes;
               return (
                 <li key={it.id} className="p-3 animate-fade-in">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-sm font-semibold">{it.author_display}</span>
-                    <span className="ticker-text text-[9px] uppercase tracking-widest text-accent border border-accent/40 px-1.5 py-0.5">
-                      {it.kind === "text" ? "Note" : it.kind === "image_url" ? "Image" : "Source"}
-                    </span>
-                    <span className="ml-auto ticker-text text-[10px] text-muted-foreground">
-                      {when}
-                    </span>
-                    {mine && (
+                  <div className="flex gap-3">
+                    {/* Vote column */}
+                    <div className="flex flex-col items-center gap-0.5 shrink-0 select-none">
                       <button
-                        onClick={() => handleRemove(it.id)}
-                        aria-label="Delete"
-                        className="text-muted-foreground hover:text-primary transition-colors"
+                        type="button"
+                        onClick={() => handleVote(it, 1)}
+                        aria-label="Upvote"
+                        aria-pressed={it.myVote === 1}
+                        className={[
+                          "p-0.5 transition-colors",
+                          it.myVote === 1
+                            ? "text-primary"
+                            : "text-muted-foreground hover:text-primary",
+                        ].join(" ")}
                       >
-                        <Trash2 className="h-3.5 w-3.5" />
+                        <ArrowBigUp
+                          className={[
+                            "h-5 w-5",
+                            it.myVote === 1 ? "fill-current" : "",
+                          ].join(" ")}
+                        />
                       </button>
-                    )}
-                  </div>
-
-                  {it.kind === "image_url" && it.image_url && (
-                    <div className="mt-2 overflow-hidden border border-border bg-muted">
-                      <img
-                        src={it.image_url}
-                        alt={it.body ?? "Evidence image"}
-                        loading="lazy"
-                        className="max-h-96 w-full object-contain"
-                        onError={(e) => {
-                          (e.currentTarget as HTMLImageElement).style.display = "none";
-                        }}
-                      />
+                      <span
+                        className={[
+                          "ticker-text text-[11px] tabular-nums font-semibold",
+                          score > 0
+                            ? "text-primary"
+                            : score < 0
+                              ? "text-destructive"
+                              : "text-muted-foreground",
+                        ].join(" ")}
+                        title={`${it.upvotes} up · ${it.downvotes} down`}
+                      >
+                        {score}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleVote(it, -1)}
+                        aria-label="Downvote"
+                        aria-pressed={it.myVote === -1}
+                        className={[
+                          "p-0.5 transition-colors",
+                          it.myVote === -1
+                            ? "text-destructive"
+                            : "text-muted-foreground hover:text-destructive",
+                        ].join(" ")}
+                      >
+                        <ArrowBigDown
+                          className={[
+                            "h-5 w-5",
+                            it.myVote === -1 ? "fill-current" : "",
+                          ].join(" ")}
+                        />
+                      </button>
                     </div>
-                  )}
 
-                  {it.body && (
-                    <p className="mt-1.5 text-sm text-foreground/90 leading-relaxed whitespace-pre-line">
-                      {it.body}
-                    </p>
-                  )}
+                    {/* Body column */}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-sm font-semibold">
+                          {it.author_display}
+                        </span>
+                        <span className="ticker-text text-[9px] uppercase tracking-widest text-accent border border-accent/40 px-1.5 py-0.5">
+                          {it.kind === "text"
+                            ? "Note"
+                            : it.kind === "image_url"
+                              ? "Image"
+                              : "Source"}
+                        </span>
+                        <span className="ml-auto ticker-text text-[10px] text-muted-foreground">
+                          {when}
+                        </span>
+                        {mine && (
+                          <button
+                            onClick={() => handleRemove(it.id)}
+                            aria-label="Delete"
+                            className="text-muted-foreground hover:text-primary transition-colors"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        )}
+                      </div>
 
-                  {it.kind === "source_url" && it.source_url && (
-                    <a
-                      href={it.source_url}
-                      target="_blank"
-                      rel="noopener noreferrer nofollow"
-                      className="mt-1.5 inline-flex items-center gap-1 text-xs text-primary hover:underline break-all"
-                    >
-                      <ExternalLink className="h-3 w-3 shrink-0" />
-                      {it.source_url}
-                    </a>
-                  )}
+                      {it.kind === "image_url" && it.image_url && (
+                        <div className="mt-2 overflow-hidden border border-border bg-muted">
+                          <img
+                            src={it.image_url}
+                            alt={it.body ?? "Evidence image"}
+                            loading="lazy"
+                            className="max-h-96 w-full object-contain"
+                            onError={(e) => {
+                              (e.currentTarget as HTMLImageElement).style.display =
+                                "none";
+                            }}
+                          />
+                        </div>
+                      )}
+
+                      {it.body && (
+                        <p className="mt-1.5 text-sm text-foreground/90 leading-relaxed whitespace-pre-line">
+                          {it.body}
+                        </p>
+                      )}
+
+                      {it.kind === "source_url" && it.source_url && (
+                        <a
+                          href={it.source_url}
+                          target="_blank"
+                          rel="noopener noreferrer nofollow"
+                          className="mt-1.5 inline-flex items-center gap-1 text-xs text-primary hover:underline break-all"
+                        >
+                          <ExternalLink className="h-3 w-3 shrink-0" />
+                          {it.source_url}
+                        </a>
+                      )}
+                    </div>
+                  </div>
                 </li>
               );
             })}

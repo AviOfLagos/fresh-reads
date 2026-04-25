@@ -41,19 +41,71 @@ function normalize(arts: GNewsArticle[]): Article[] {
   }));
 }
 
+export type EventType = "all" | "conference" | "meetup" | "hackathon" | "workshop" | "summit";
+
+const TYPE_VOCAB: Record<Exclude<EventType, "all">, string[]> = {
+  conference: ["conference", "summit", "expo"],
+  meetup: ["meetup", "meet-up", "gathering"],
+  hackathon: ["hackathon", "hack day", "buildathon"],
+  workshop: ["workshop", "training", "bootcamp"],
+  summit: ["summit", "forum", "convention"],
+};
+
 const inputSchema = z.object({
   city: z.string().min(1).max(60).default("Lagos"),
   country: z.string().min(2).max(5).default("ng"),
   topic: z.string().max(80).default("tech"),
   max: z.number().int().min(1).max(25).default(15),
+  eventType: z
+    .enum(["all", "conference", "meetup", "hackathon", "workshop", "summit"])
+    .default("all"),
+  // ISO date strings (YYYY-MM-DD); optional
+  fromDate: z.string().max(10).optional().nullable(),
+  toDate: z.string().max(10).optional().nullable(),
 });
+
+async function gnewsSearch(
+  apiKey: string,
+  q: string,
+  country: string,
+  max: number,
+  fromDate?: string | null,
+  toDate?: string | null,
+): Promise<{ articles: GNewsArticle[]; totalArticles: number; status: number }> {
+  const params = new URLSearchParams({
+    q,
+    lang: "en",
+    max: String(max),
+    sortby: "publishedAt",
+    country,
+    apikey: apiKey,
+  });
+  if (fromDate) params.set("from", `${fromDate}T00:00:00Z`);
+  if (toDate) params.set("to", `${toDate}T23:59:59Z`);
+
+  const url = `${GNEWS_BASE}/search?${params.toString()}`;
+  const res = await fetch(url, { headers: { Accept: "application/json" } });
+  if (!res.ok) {
+    return { articles: [], totalArticles: 0, status: res.status };
+  }
+  const json = (await res.json()) as GNewsResponse;
+  return {
+    articles: json.articles ?? [],
+    totalArticles: json.totalArticles ?? 0,
+    status: 200,
+  };
+}
 
 /**
  * Fetch upcoming-event NEWS for a given city/country/topic via GNews search.
  *
- * Note: there is no free, structured Lagos-tech-events API right now
- * (Eventbrite shut their public Search API in 2020; tix.africa has none).
- * We surface real announcements/coverage and link out to organizers.
+ * Strategy: run TWO parallel queries and merge:
+ *   1) Editorial coverage  — "<city>" AND (tech) AND (event/conference/...)
+ *   2) Organizer mentions  — "<city>" AND (eventbrite OR tix.africa OR lu.ma OR meetup.com)
+ *
+ * This brings in announcements that link to platforms like Eventbrite, tix.africa,
+ * Lu.ma, and Meetup.com — the closest we can get to a real events API on the
+ * free tier (their public Search APIs are gone or non-existent).
  */
 export const fetchEvents = createServerFn({ method: "GET" })
   .inputValidator((input: unknown) => inputSchema.parse(input))
@@ -69,26 +121,30 @@ export const fetchEvents = createServerFn({ method: "GET" })
 
     const city = data.city.trim();
     const topic = data.topic.trim() || "tech";
-    // Build a focused query: city + tech-event vocabulary
-    const q = `"${city}" AND (${topic} OR startup OR developer) AND (event OR conference OR hackathon OR meetup OR summit OR workshop OR fair)`;
+
+    // Type vocabulary — "all" sweeps every type.
+    const typeWords =
+      data.eventType === "all"
+        ? ["event", "conference", "hackathon", "meetup", "summit", "workshop", "fair"]
+        : TYPE_VOCAB[data.eventType];
+    const typeClause = `(${typeWords.join(" OR ")})`;
+
+    // Per-request cap — split between the two strategies.
+    const perQuery = Math.max(5, Math.ceil(data.max));
+
+    const editorialQ = `"${city}" AND (${topic} OR startup OR developer) AND ${typeClause}`;
+    const organizerQ = `"${city}" AND (eventbrite OR "tix.africa" OR "lu.ma" OR meetup.com OR "luma" OR ticketmaster) AND ${typeClause}`;
 
     try {
-      const params = new URLSearchParams({
-        q,
-        lang: "en",
-        max: String(data.max),
-        sortby: "publishedAt",
-        country: data.country,
-        apikey: apiKey,
-      });
+      const [editorial, organizer] = await Promise.all([
+        gnewsSearch(apiKey, editorialQ, data.country, perQuery, data.fromDate, data.toDate),
+        gnewsSearch(apiKey, organizerQ, data.country, perQuery, data.fromDate, data.toDate),
+      ]);
 
-      const url = `${GNEWS_BASE}/search?${params.toString()}`;
-      const res = await fetch(url, { headers: { Accept: "application/json" } });
-
-      if (!res.ok) {
-        const text = await res.text().catch(() => "");
-        console.error(`GNews events ${res.status}: ${text}`);
-        if (res.status === 429) {
+      // Surface rate-limit / error if BOTH calls failed
+      if (editorial.status !== 200 && organizer.status !== 200) {
+        const status = editorial.status || organizer.status;
+        if (status === 429) {
           return {
             articles: [],
             totalArticles: 0,
@@ -98,14 +154,30 @@ export const fetchEvents = createServerFn({ method: "GET" })
         return {
           articles: [],
           totalArticles: 0,
-          error: `Failed to load events (${res.status}).`,
+          error: `Failed to load events (${status}).`,
         };
       }
 
-      const json = (await res.json()) as GNewsResponse;
+      // Merge + dedupe by URL
+      const seen = new Set<string>();
+      const merged: GNewsArticle[] = [];
+      for (const list of [editorial.articles, organizer.articles]) {
+        for (const a of list) {
+          if (seen.has(a.url)) continue;
+          seen.add(a.url);
+          merged.push(a);
+        }
+      }
+
+      // Sort newest-first
+      merged.sort(
+        (a, b) =>
+          new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime(),
+      );
+
       return {
-        articles: normalize(json.articles ?? []),
-        totalArticles: json.totalArticles ?? 0,
+        articles: normalize(merged.slice(0, data.max)),
+        totalArticles: merged.length,
         error: null,
       };
     } catch (err) {

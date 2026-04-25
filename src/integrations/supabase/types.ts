@@ -142,6 +142,35 @@ export type Database = {
         }
         Relationships: []
       }
+      evidence_votes: {
+        Row: {
+          created_at: string
+          evidence_id: string
+          user_id: string
+          vote: number
+        }
+        Insert: {
+          created_at?: string
+          evidence_id: string
+          user_id: string
+          vote: number
+        }
+        Update: {
+          created_at?: string
+          evidence_id?: string
+          user_id?: string
+          vote?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "evidence_votes_evidence_id_fkey"
+            columns: ["evidence_id"]
+            isOneToOne: false
+            referencedRelation: "article_evidence"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
