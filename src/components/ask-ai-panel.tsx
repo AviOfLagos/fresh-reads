@@ -1,9 +1,19 @@
-import { useEffect, useRef, useState } from "react";
-import { Bot, Send, Loader2, LogIn, MessageSquarePlus, Trash2, AlertTriangle, Sparkles } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  Bot,
+  Send,
+  Loader2,
+  LogIn,
+  MessageSquarePlus,
+  Trash2,
+  AlertTriangle,
+  Sparkles,
+  Lightbulb,
+} from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/use-auth";
-import { askArticleQuestion } from "@/server/ask-ai";
+import { askArticleQuestion, suggestFollowupQuestions } from "@/server/ask-ai";
 import { supabase } from "@/integrations/supabase/client";
 import { AuthDialog } from "@/components/auth-dialog";
 import type { Article } from "@/lib/news-types";
@@ -14,11 +24,11 @@ interface ChatMsg {
   content: string;
 }
 
-const SUGGESTED = [
+const STARTERS = [
   "Summarize this in one sentence.",
-  "Is this likely real or fake?",
   "What's missing from the story?",
   "Who are the named sources?",
+  "How could I verify this?",
 ];
 
 function newSessionId(): string {
@@ -31,6 +41,7 @@ function newSessionId(): string {
 export function AskAiPanel({ article }: { article: Article }) {
   const { user } = useAuth();
   const ask = useServerFn(askArticleQuestion);
+  const suggest = useServerFn(suggestFollowupQuestions);
 
   const [sessionId, setSessionId] = useState<string>(() => newSessionId());
   const [messages, setMessages] = useState<ChatMsg[]>([]);
@@ -38,12 +49,48 @@ export function AskAiPanel({ article }: { article: Article }) {
   const [loading, setLoading] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
   const [savingComment, setSavingComment] = useState(false);
+
+  // Follow-up suggestions
+  const [followups, setFollowups] = useState<string[]>([]);
+  const [followupsLoading, setFollowupsLoading] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll on new messages
   useEffect(() => {
-    listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: "smooth" });
+    listRef.current?.scrollTo({
+      top: listRef.current.scrollHeight,
+      behavior: "smooth",
+    });
   }, [messages, loading]);
+
+  const refreshFollowups = useCallback(
+    async (lastUser: string | null, lastAi: string | null) => {
+      setFollowupsLoading(true);
+      try {
+        const res = await suggest({
+          data: {
+            article: {
+              title: article.title,
+              description: article.description,
+              content: article.content,
+              sourceName: article.source.name,
+              url: article.url,
+            },
+            lastUserQuestion: lastUser,
+            lastAiAnswer: lastAi,
+          },
+        });
+        if (res.questions.length > 0) {
+          setFollowups(res.questions);
+        }
+      } catch (err) {
+        console.error("followups failed", err);
+      } finally {
+        setFollowupsLoading(false);
+      }
+    },
+    [article, suggest],
+  );
 
   const send = async (questionText: string) => {
     const q = questionText.trim();
@@ -57,6 +104,7 @@ export function AskAiPanel({ article }: { article: Article }) {
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
     setLoading(true);
+    setFollowups([]); // clear stale suggestions while answering
 
     // Persist user message (best-effort)
     void supabase.from("ai_chat_messages").insert({
@@ -87,10 +135,18 @@ export function AskAiPanel({ article }: { article: Article }) {
         toast.error(res.error ?? "AI failed to answer.");
         setMessages((prev) => [
           ...prev,
-          { id: newSessionId(), role: "assistant", content: `(error: ${res.error ?? "no answer"})` },
+          {
+            id: newSessionId(),
+            role: "assistant",
+            content: `(error: ${res.error ?? "no answer"})`,
+          },
         ]);
       } else {
-        const aiMsg: ChatMsg = { id: newSessionId(), role: "assistant", content: res.answer };
+        const aiMsg: ChatMsg = {
+          id: newSessionId(),
+          role: "assistant",
+          content: res.answer,
+        };
         setMessages((prev) => [...prev, aiMsg]);
         void supabase.from("ai_chat_messages").insert({
           article_id: article.id,
@@ -99,6 +155,8 @@ export function AskAiPanel({ article }: { article: Article }) {
           role: "assistant",
           content: res.answer,
         });
+        // Generate next follow-ups based on this Q&A pair
+        void refreshFollowups(q, res.answer);
       }
     } catch (err) {
       console.error(err);
@@ -111,6 +169,7 @@ export function AskAiPanel({ article }: { article: Article }) {
   const reset = () => {
     setMessages([]);
     setSessionId(newSessionId());
+    setFollowups([]);
   };
 
   const saveAsComment = async () => {
@@ -132,7 +191,10 @@ export function AskAiPanel({ article }: { article: Article }) {
       user.email?.split("@")[0] ??
       "Reader";
 
-    const body = `🤖 AI conversation about this article\n\n${transcript}`.slice(0, 1000);
+    const body = `🤖 AI conversation about this article\n\n${transcript}`.slice(
+      0,
+      1000,
+    );
 
     const { error } = await supabase.from("comments").insert({
       article_id: article.id,
@@ -147,6 +209,8 @@ export function AskAiPanel({ article }: { article: Article }) {
       toast.success("Conversation saved as comment");
     }
   };
+
+  const showSuggestions = followups.length > 0 || followupsLoading;
 
   return (
     <>
@@ -175,7 +239,11 @@ export function AskAiPanel({ article }: { article: Article }) {
                   disabled={savingComment}
                   className="inline-flex items-center gap-1 border border-border px-2 py-1 ticker-text text-[10px] uppercase tracking-widest text-muted-foreground hover:border-primary hover:text-primary transition-colors disabled:opacity-40"
                 >
-                  {savingComment ? <Loader2 className="h-3 w-3 animate-spin" /> : <MessageSquarePlus className="h-3 w-3" />}
+                  {savingComment ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <MessageSquarePlus className="h-3 w-3" />
+                  )}
                   Save as comment
                 </button>
                 <button
@@ -195,10 +263,11 @@ export function AskAiPanel({ article }: { article: Article }) {
           {messages.length === 0 ? (
             <>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                The AI only has access to this article — it won't make up facts. Try:
+                The AI only has access to this article — it won't make up facts.
+                Try:
               </p>
               <div className="flex flex-wrap gap-1.5">
-                {SUGGESTED.map((s) => (
+                {STARTERS.map((s) => (
                   <button
                     key={s}
                     type="button"
@@ -235,6 +304,37 @@ export function AskAiPanel({ article }: { article: Article }) {
             </div>
           )}
         </div>
+
+        {/* Follow-up suggestions */}
+        {!loading && messages.length > 0 && showSuggestions && (
+          <div className="border-t border-border bg-background/40 px-3 py-2 animate-fade-in">
+            <div className="mb-1.5 ticker-text text-[10px] uppercase tracking-widest text-muted-foreground inline-flex items-center gap-1.5">
+              <Lightbulb className="h-3 w-3 text-accent" />
+              Suggested follow-ups
+            </div>
+            {followupsLoading && followups.length === 0 ? (
+              <div className="flex flex-wrap gap-1.5">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="h-6 w-32 skeleton" />
+                ))}
+              </div>
+            ) : (
+              <div className="flex flex-wrap gap-1.5">
+                {followups.map((q) => (
+                  <button
+                    key={q}
+                    type="button"
+                    onClick={() => send(q)}
+                    disabled={loading}
+                    className="border border-border bg-background px-2 py-1 text-xs text-foreground/90 hover:border-primary hover:text-primary transition-colors disabled:opacity-40 text-left"
+                  >
+                    {q}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         <form
           className="border-t border-border p-3"
