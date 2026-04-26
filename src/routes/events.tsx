@@ -15,10 +15,47 @@ import {
   RotateCcw,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { toast } from "sonner";
 import { fetchEvents, type EventType } from "@/server/events";
 import { useGeolocation } from "@/lib/use-geolocation";
 import { cacheArticles } from "@/lib/article-cache";
 import { usePullToRefresh } from "@/lib/use-pull-to-refresh";
+
+// LocalStorage key for persisting the user's quick-filter + sort state.
+const PREFS_KEY = "events:prefs:v1";
+
+interface StoredPrefs {
+  city?: string;
+  country?: string;
+  eventType?: EventType;
+  fromDate?: string;
+  toDate?: string;
+  sort?: SortMode;
+}
+
+function loadPrefs(): StoredPrefs | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(PREFS_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw) as StoredPrefs;
+  } catch {
+    return null;
+  }
+}
+
+function savePrefs(p: StoredPrefs) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(PREFS_KEY, JSON.stringify(p));
+  } catch {
+    /* quota or disabled — silently ignore */
+  }
+}
+
+// Shared focus ring for chip-style controls — keyboard-only via focus-visible.
+const CHIP_FOCUS =
+  "focus:outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background";
 
 const POPULAR_CITIES = [
   { city: "Lagos", country: "ng", label: "Lagos · Nigeria" },
@@ -137,19 +174,26 @@ export const Route = createFileRoute("/events")({
 function EventsPage() {
   const geo = useGeolocation();
 
+  // Hydrate from localStorage on first render so we render the same view
+  // the user left behind. Defaults are Lagos / NG / soonest.
+  const initial = useMemo(() => loadPrefs() ?? {}, []);
+
   // Location
-  const [city, setCity] = useState<string>("Lagos");
-  const [country, setCountry] = useState<string>("ng");
+  const [city, setCity] = useState<string>(initial.city ?? "Lagos");
+  const [country, setCountry] = useState<string>(initial.country ?? "ng");
   const [customCity, setCustomCity] = useState<string>("");
 
   // Filters
-  const [eventType, setEventType] = useState<EventType>("all");
-  const [fromDate, setFromDate] = useState<string>("");
-  const [toDate, setToDate] = useState<string>("");
-  const [sort, setSort] = useState<SortMode>("soonest");
+  const [eventType, setEventType] = useState<EventType>(initial.eventType ?? "all");
+  const [fromDate, setFromDate] = useState<string>(initial.fromDate ?? "");
+  const [toDate, setToDate] = useState<string>(initial.toDate ?? "");
+  const [sort, setSort] = useState<SortMode>(initial.sort ?? "soonest");
 
-  // Auto-apply geolocation once if user hasn't manually picked
-  const [autoApplied, setAutoApplied] = useState(false);
+  // If we hydrated stored prefs, treat that as a manual choice so geolocation
+  // doesn't quietly overwrite the user's last city.
+  const [autoApplied, setAutoApplied] = useState(
+    !!(initial.city && initial.country),
+  );
   useEffect(() => {
     if (!autoApplied && geo.status === "ok" && geo.city && geo.country) {
       setCity(geo.city);
@@ -157,6 +201,11 @@ function EventsPage() {
       setAutoApplied(true);
     }
   }, [geo.status, geo.city, geo.country, autoApplied]);
+
+  // Persist whenever any tracked pref changes.
+  useEffect(() => {
+    savePrefs({ city, country, eventType, fromDate, toDate, sort });
+  }, [city, country, eventType, fromDate, toDate, sort]);
 
   const query = useQuery({
     queryKey: ["events", city, country, eventType, fromDate, toDate],
@@ -183,9 +232,28 @@ function EventsPage() {
     }
   }, [query.data]);
 
-  // Pull-to-refresh — only active on touch devices
+  // Pull-to-refresh — only active on touch devices.
+  // If the underlying refetch fails (rate limit, offline), surface a
+  // friendly toast with a one-tap retry instead of failing silently.
   const refetch = useCallback(async () => {
-    await query.refetch();
+    try {
+      const result = await query.refetch();
+      if (result.error) throw result.error;
+    } catch (err) {
+      const message =
+        err instanceof Error && err.message
+          ? err.message
+          : "Couldn't refresh events. Check your connection.";
+      toast.error("Refresh failed", {
+        description: message,
+        action: {
+          label: "Retry",
+          onClick: () => {
+            void refetch();
+          },
+        },
+      });
+    }
   }, [query]);
   const ptr = usePullToRefresh(refetch);
 
@@ -280,19 +348,44 @@ function EventsPage() {
     pop(`sort:${next}`);
   };
 
+  // Snapshot current filter/sort state and offer a one-tap Undo via toast.
+  const offerUndo = (label: string, prev: StoredPrefs) => {
+    toast(label, {
+      description: "Tap undo to restore your previous view.",
+      action: {
+        label: "Undo",
+        onClick: () => {
+          if (prev.eventType !== undefined) setEventType(prev.eventType);
+          if (prev.fromDate !== undefined) setFromDate(prev.fromDate);
+          if (prev.toDate !== undefined) setToDate(prev.toDate);
+          if (prev.sort !== undefined) setSort(prev.sort);
+          toast.success("Restored your previous view");
+        },
+      },
+    });
+  };
+
   const clearFilters = () => {
+    const snapshot: StoredPrefs = { eventType, fromDate, toDate };
+    const wasActive =
+      eventType !== "all" || !!fromDate || !!toDate;
     setEventType("all");
     setFromDate("");
     setToDate("");
     pop("clear");
+    if (wasActive) offerUndo("Filters cleared", snapshot);
   };
 
   const resetAll = () => {
+    const snapshot: StoredPrefs = { eventType, fromDate, toDate, sort };
+    const wasActive =
+      eventType !== "all" || !!fromDate || !!toDate || sort !== "soonest";
     setEventType("all");
     setFromDate("");
     setToDate("");
     setSort("soonest");
     pop("reset");
+    if (wasActive) offerUndo("Events view reset", snapshot);
   };
 
   const submitCustomCity = (e: React.FormEvent) => {
@@ -439,8 +532,15 @@ function EventsPage() {
 
       {/* Quick chips — toggle date range & event type without opening filters */}
       <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-2">
-        <div className="flex flex-wrap items-center gap-1.5">
-          <span className="ticker-text text-[10px] uppercase tracking-widest text-muted-foreground mr-0.5">
+        <div
+          className="flex flex-wrap items-center gap-1.5"
+          role="group"
+          aria-label="Filter events by date range"
+        >
+          <span
+            id="events-date-label"
+            className="ticker-text text-[10px] uppercase tracking-widest text-muted-foreground mr-0.5"
+          >
             When
           </span>
           {DATE_PRESETS.map((p) => {
@@ -453,12 +553,14 @@ function EventsPage() {
                 onClick={() => applyDatePreset(p.id)}
                 className={[
                   "border px-2 py-1 ticker-text text-[10px] uppercase tracking-widest transition-all duration-200 will-change-transform",
+                  CHIP_FOCUS,
                   active
                     ? "border-primary bg-primary/10 text-primary"
                     : "border-border text-muted-foreground hover:border-primary hover:text-primary",
                   popped ? "animate-chip-pop" : "",
                 ].join(" ")}
                 aria-pressed={active}
+                aria-label={`Show events for ${p.label.toLowerCase()}${active ? " (selected)" : ""}`}
               >
                 {p.label}
               </button>
@@ -466,7 +568,11 @@ function EventsPage() {
           })}
         </div>
 
-        <div className="flex flex-wrap items-center gap-1.5">
+        <div
+          className="flex flex-wrap items-center gap-1.5"
+          role="group"
+          aria-label="Filter events by type"
+        >
           <span className="ticker-text text-[10px] uppercase tracking-widest text-muted-foreground mr-0.5">
             Type
           </span>
@@ -480,12 +586,14 @@ function EventsPage() {
                 onClick={() => setEventTypeWithPop(t.id, "quick")}
                 className={[
                   "border px-2 py-1 ticker-text text-[10px] uppercase tracking-widest transition-all duration-200 will-change-transform",
+                  CHIP_FOCUS,
                   active
                     ? "border-primary bg-primary/10 text-primary"
                     : "border-border text-muted-foreground hover:border-primary hover:text-primary",
                   popped ? "animate-chip-pop" : "",
                 ].join(" ")}
                 aria-pressed={active}
+                aria-label={`Filter by ${t.label} events${active ? " (selected)" : ""}`}
               >
                 {t.label}
               </button>
@@ -494,6 +602,7 @@ function EventsPage() {
         </div>
 
         <label
+          htmlFor="events-sort-select"
           className={[
             "ml-auto inline-flex items-center gap-1.5 ticker-text text-[10px] uppercase tracking-widest text-muted-foreground border px-1.5 py-0.5 transition-all duration-200 will-change-transform",
             poppedKey?.startsWith("sort:")
@@ -509,10 +618,15 @@ function EventsPage() {
           />
           Sort
           <select
+            id="events-sort-select"
             value={sort}
             onChange={(e) => setSortWithPop(e.target.value as SortMode)}
-            aria-label="Sort events"
-            className="border border-border bg-background px-1.5 py-1 text-xs text-foreground focus:border-primary focus:outline-none"
+            aria-label={`Sort events. Currently sorted by ${SORT_OPTIONS.find((o) => o.id === sort)?.label}`}
+            className={[
+              "border border-border bg-background px-1.5 py-1 text-xs text-foreground",
+              CHIP_FOCUS,
+              "focus-visible:border-primary",
+            ].join(" ")}
           >
             {SORT_OPTIONS.map((o) => (
               <option key={o.id} value={o.id}>
@@ -542,7 +656,11 @@ function EventsPage() {
           )}
         </div>
 
-        <div className="mb-2 flex flex-wrap gap-1.5">
+        <div
+          className="mb-2 flex flex-wrap gap-1.5"
+          role="group"
+          aria-label="Filter events by type"
+        >
           {EVENT_TYPES.map((t) => {
             const active = t.id === eventType;
             const popped = poppedKey === `type:${t.id}`;
@@ -553,11 +671,14 @@ function EventsPage() {
                 onClick={() => setEventTypeWithPop(t.id, "type")}
                 className={[
                   "border px-2 py-1 ticker-text text-[10px] uppercase tracking-widest transition-all duration-200 will-change-transform",
+                  CHIP_FOCUS,
                   active
                     ? "border-primary bg-primary/10 text-primary"
                     : "border-border text-muted-foreground hover:border-primary hover:text-primary",
                   popped ? "animate-chip-pop" : "",
                 ].join(" ")}
+                aria-pressed={active}
+                aria-label={`Filter by ${t.label} events${active ? " (selected)" : ""}`}
               >
                 {t.label}
               </button>
