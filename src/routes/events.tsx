@@ -532,8 +532,15 @@ function EventsPage() {
 
       {/* Quick chips — toggle date range & event type without opening filters */}
       <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-2">
-        <div className="flex flex-wrap items-center gap-1.5">
-          <span className="ticker-text text-[10px] uppercase tracking-widest text-muted-foreground mr-0.5">
+        <div
+          className="flex flex-wrap items-center gap-1.5"
+          role="group"
+          aria-label="Filter events by date range"
+        >
+          <span
+            id="events-date-label"
+            className="ticker-text text-[10px] uppercase tracking-widest text-muted-foreground mr-0.5"
+          >
             When
           </span>
           {DATE_PRESETS.map((p) => {
@@ -546,12 +553,14 @@ function EventsPage() {
                 onClick={() => applyDatePreset(p.id)}
                 className={[
                   "border px-2 py-1 ticker-text text-[10px] uppercase tracking-widest transition-all duration-200 will-change-transform",
+                  CHIP_FOCUS,
                   active
                     ? "border-primary bg-primary/10 text-primary"
                     : "border-border text-muted-foreground hover:border-primary hover:text-primary",
                   popped ? "animate-chip-pop" : "",
                 ].join(" ")}
                 aria-pressed={active}
+                aria-label={`Show events for ${p.label.toLowerCase()}${active ? " (selected)" : ""}`}
               >
                 {p.label}
               </button>
@@ -559,7 +568,11 @@ function EventsPage() {
           })}
         </div>
 
-        <div className="flex flex-wrap items-center gap-1.5">
+        <div
+          className="flex flex-wrap items-center gap-1.5"
+          role="group"
+          aria-label="Filter events by type"
+        >
           <span className="ticker-text text-[10px] uppercase tracking-widest text-muted-foreground mr-0.5">
             Type
           </span>
@@ -573,12 +586,14 @@ function EventsPage() {
                 onClick={() => setEventTypeWithPop(t.id, "quick")}
                 className={[
                   "border px-2 py-1 ticker-text text-[10px] uppercase tracking-widest transition-all duration-200 will-change-transform",
+                  CHIP_FOCUS,
                   active
                     ? "border-primary bg-primary/10 text-primary"
                     : "border-border text-muted-foreground hover:border-primary hover:text-primary",
                   popped ? "animate-chip-pop" : "",
                 ].join(" ")}
                 aria-pressed={active}
+                aria-label={`Filter by ${t.label} events${active ? " (selected)" : ""}`}
               >
                 {t.label}
               </button>
@@ -587,6 +602,7 @@ function EventsPage() {
         </div>
 
         <label
+          htmlFor="events-sort-select"
           className={[
             "ml-auto inline-flex items-center gap-1.5 ticker-text text-[10px] uppercase tracking-widest text-muted-foreground border px-1.5 py-0.5 transition-all duration-200 will-change-transform",
             poppedKey?.startsWith("sort:")
@@ -602,10 +618,15 @@ function EventsPage() {
           />
           Sort
           <select
+            id="events-sort-select"
             value={sort}
             onChange={(e) => setSortWithPop(e.target.value as SortMode)}
-            aria-label="Sort events"
-            className="border border-border bg-background px-1.5 py-1 text-xs text-foreground focus:border-primary focus:outline-none"
+            aria-label={`Sort events. Currently sorted by ${SORT_OPTIONS.find((o) => o.id === sort)?.label}`}
+            className={[
+              "border border-border bg-background px-1.5 py-1 text-xs text-foreground",
+              CHIP_FOCUS,
+              "focus-visible:border-primary",
+            ].join(" ")}
           >
             {SORT_OPTIONS.map((o) => (
               <option key={o.id} value={o.id}>
