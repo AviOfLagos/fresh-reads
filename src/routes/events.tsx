@@ -267,12 +267,32 @@ function EventsPage() {
     const r = presetToRange(preset);
     setFromDate(r.from);
     setToDate(r.to);
+    pop(`date:${preset}`);
+  };
+
+  const setEventTypeWithPop = (next: EventType, prefix: "type" | "quick") => {
+    setEventType(next);
+    pop(`${prefix}:${next}`);
+  };
+
+  const setSortWithPop = (next: SortMode) => {
+    setSort(next);
+    pop(`sort:${next}`);
   };
 
   const clearFilters = () => {
     setEventType("all");
     setFromDate("");
     setToDate("");
+    pop("clear");
+  };
+
+  const resetAll = () => {
+    setEventType("all");
+    setFromDate("");
+    setToDate("");
+    setSort("soonest");
+    pop("reset");
   };
 
   const submitCustomCity = (e: React.FormEvent) => {
