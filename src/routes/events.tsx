@@ -508,16 +508,18 @@ function EventsPage() {
         <div className="mb-2 flex flex-wrap gap-1.5">
           {EVENT_TYPES.map((t) => {
             const active = t.id === eventType;
+            const popped = poppedKey === `type:${t.id}`;
             return (
               <button
                 key={t.id}
                 type="button"
-                onClick={() => setEventType(t.id)}
+                onClick={() => setEventTypeWithPop(t.id, "type")}
                 className={[
-                  "border px-2 py-1 ticker-text text-[10px] uppercase tracking-widest transition-colors",
+                  "border px-2 py-1 ticker-text text-[10px] uppercase tracking-widest transition-all duration-200 will-change-transform",
                   active
                     ? "border-primary bg-primary/10 text-primary"
                     : "border-border text-muted-foreground hover:border-primary hover:text-primary",
+                  popped ? "animate-chip-pop" : "",
                 ].join(" ")}
               >
                 {t.label}
