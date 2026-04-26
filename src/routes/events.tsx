@@ -408,16 +408,18 @@ function EventsPage() {
           </span>
           {DATE_PRESETS.map((p) => {
             const active = activeDatePreset === p.id;
+            const popped = poppedKey === `date:${p.id}`;
             return (
               <button
                 key={p.id}
                 type="button"
                 onClick={() => applyDatePreset(p.id)}
                 className={[
-                  "border px-2 py-1 ticker-text text-[10px] uppercase tracking-widest transition-colors",
+                  "border px-2 py-1 ticker-text text-[10px] uppercase tracking-widest transition-all duration-200 will-change-transform",
                   active
                     ? "border-primary bg-primary/10 text-primary"
                     : "border-border text-muted-foreground hover:border-primary hover:text-primary",
+                  popped ? "animate-chip-pop" : "",
                 ].join(" ")}
                 aria-pressed={active}
               >
@@ -433,16 +435,18 @@ function EventsPage() {
           </span>
           {EVENT_TYPES.map((t) => {
             const active = t.id === eventType;
+            const popped = poppedKey === `quick:${t.id}`;
             return (
               <button
                 key={`quick-${t.id}`}
                 type="button"
-                onClick={() => setEventType(t.id)}
+                onClick={() => setEventTypeWithPop(t.id, "quick")}
                 className={[
-                  "border px-2 py-1 ticker-text text-[10px] uppercase tracking-widest transition-colors",
+                  "border px-2 py-1 ticker-text text-[10px] uppercase tracking-widest transition-all duration-200 will-change-transform",
                   active
                     ? "border-primary bg-primary/10 text-primary"
                     : "border-border text-muted-foreground hover:border-primary hover:text-primary",
+                  popped ? "animate-chip-pop" : "",
                 ].join(" ")}
                 aria-pressed={active}
               >
@@ -452,12 +456,24 @@ function EventsPage() {
           })}
         </div>
 
-        <label className="ml-auto inline-flex items-center gap-1.5 ticker-text text-[10px] uppercase tracking-widest text-muted-foreground">
-          <ArrowUpDown className="h-3 w-3" />
+        <label
+          className={[
+            "ml-auto inline-flex items-center gap-1.5 ticker-text text-[10px] uppercase tracking-widest text-muted-foreground border px-1.5 py-0.5 transition-all duration-200 will-change-transform",
+            poppedKey?.startsWith("sort:")
+              ? "border-primary text-primary animate-chip-pop"
+              : "border-transparent",
+          ].join(" ")}
+        >
+          <ArrowUpDown
+            className={[
+              "h-3 w-3 transition-transform duration-300",
+              poppedKey?.startsWith("sort:") ? "rotate-180 text-primary" : "",
+            ].join(" ")}
+          />
           Sort
           <select
             value={sort}
-            onChange={(e) => setSort(e.target.value as SortMode)}
+            onChange={(e) => setSortWithPop(e.target.value as SortMode)}
             aria-label="Sort events"
             className="border border-border bg-background px-1.5 py-1 text-xs text-foreground focus:border-primary focus:outline-none"
           >
