@@ -306,6 +306,43 @@ function EventsPage() {
 
   return (
     <div className="mx-auto max-w-5xl px-2 py-4 sm:px-4 sm:py-6 md:py-8">
+      {/* Pull-to-refresh indicator (touch only) */}
+      {(ptr.pull > 0 || ptr.refreshing) && (
+        <div
+          className="pointer-events-none fixed left-0 right-0 top-0 z-40 flex justify-center"
+          style={{
+            transform: `translateY(${Math.min(ptr.pull, ptr.threshold + 8)}px)`,
+            transition: ptr.refreshing ? "transform 200ms ease-out" : "none",
+          }}
+          aria-hidden={!ptr.refreshing}
+        >
+          <div
+            className={[
+              "mt-2 inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1 ticker-text text-[10px] uppercase tracking-widest shadow-sm",
+              ptr.progress >= 1 || ptr.refreshing
+                ? "text-primary border-primary"
+                : "text-muted-foreground",
+            ].join(" ")}
+          >
+            {ptr.refreshing ? (
+              <RefreshCw className="h-3 w-3 animate-spin" />
+            ) : (
+              <ArrowDown
+                className="h-3 w-3 transition-transform duration-200"
+                style={{
+                  transform: `rotate(${ptr.progress >= 1 ? 180 : 0}deg)`,
+                }}
+              />
+            )}
+            {ptr.refreshing
+              ? "Refreshing…"
+              : ptr.progress >= 1
+                ? "Release to refresh"
+                : "Pull to refresh"}
+          </div>
+        </div>
+      )}
+
       <div className="mb-4 border-b border-border pb-3 sm:mb-6 sm:pb-4">
         <div className="ticker-text text-[10px] uppercase tracking-widest text-primary mb-1 flex items-center gap-2">
           <Calendar className="h-3 w-3" />
