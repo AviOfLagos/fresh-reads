@@ -9,6 +9,7 @@ import {
   AlertTriangle,
   Filter,
   X,
+  ArrowUpDown,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { fetchEvents, type EventType } from "@/server/events";
