@@ -183,6 +183,28 @@ function EventsPage() {
     }
   }, [query.data]);
 
+  // Pull-to-refresh — only active on touch devices
+  const refetch = useCallback(async () => {
+    await query.refetch();
+  }, [query]);
+  const ptr = usePullToRefresh(refetch);
+
+  // Track "just toggled" chip ids to play a one-off pop animation.
+  // Stored as a key like "type:meetup" or "date:week" or "sort:newest".
+  const [poppedKey, setPoppedKey] = useState<string | null>(null);
+  const popTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pop = useCallback((key: string) => {
+    setPoppedKey(key);
+    if (popTimer.current) clearTimeout(popTimer.current);
+    popTimer.current = setTimeout(() => setPoppedKey(null), 320);
+  }, []);
+  useEffect(
+    () => () => {
+      if (popTimer.current) clearTimeout(popTimer.current);
+    },
+    [],
+  );
+
   const rawArticles = query.data?.articles ?? [];
 
   const typeVocab = useMemo(() => {
