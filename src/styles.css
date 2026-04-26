@@ -193,6 +193,45 @@
     animation: shimmer 2s infinite linear;
   }
 
+  @keyframes chip-pop {
+    0% {
+      transform: scale(1);
+    }
+    40% {
+      transform: scale(1.08);
+    }
+    100% {
+      transform: scale(1);
+    }
+  }
+  .animate-chip-pop {
+    animation: chip-pop 0.28s ease-out;
+  }
+
+  /* Subtle pulse halo when a chip becomes active */
+  @keyframes chip-glow {
+    0% {
+      box-shadow: 0 0 0 0 color-mix(in oklch, var(--primary) 35%, transparent);
+    }
+    100% {
+      box-shadow: 0 0 0 6px color-mix(in oklch, var(--primary) 0%, transparent);
+    }
+  }
+  .animate-chip-glow {
+    animation: chip-glow 0.5s ease-out;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .animate-fade-up,
+    .animate-fade-in,
+    .animate-slide-down,
+    .animate-chip-pop,
+    .animate-chip-glow,
+    .stagger > * {
+      animation: none !important;
+    }
+  }
+
   .stagger > * {
     opacity: 0;
     animation: fade-up 0.5s ease-out forwards;
