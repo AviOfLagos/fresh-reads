@@ -354,6 +354,76 @@ function EventsPage() {
         </button>
       </form>
 
+      {/* Quick chips — toggle date range & event type without opening filters */}
+      <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-2">
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="ticker-text text-[10px] uppercase tracking-widest text-muted-foreground mr-0.5">
+            When
+          </span>
+          {DATE_PRESETS.map((p) => {
+            const active = activeDatePreset === p.id;
+            return (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => applyDatePreset(p.id)}
+                className={[
+                  "border px-2 py-1 ticker-text text-[10px] uppercase tracking-widest transition-colors",
+                  active
+                    ? "border-primary bg-primary/10 text-primary"
+                    : "border-border text-muted-foreground hover:border-primary hover:text-primary",
+                ].join(" ")}
+                aria-pressed={active}
+              >
+                {p.label}
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="ticker-text text-[10px] uppercase tracking-widest text-muted-foreground mr-0.5">
+            Type
+          </span>
+          {EVENT_TYPES.map((t) => {
+            const active = t.id === eventType;
+            return (
+              <button
+                key={`quick-${t.id}`}
+                type="button"
+                onClick={() => setEventType(t.id)}
+                className={[
+                  "border px-2 py-1 ticker-text text-[10px] uppercase tracking-widest transition-colors",
+                  active
+                    ? "border-primary bg-primary/10 text-primary"
+                    : "border-border text-muted-foreground hover:border-primary hover:text-primary",
+                ].join(" ")}
+                aria-pressed={active}
+              >
+                {t.label}
+              </button>
+            );
+          })}
+        </div>
+
+        <label className="ml-auto inline-flex items-center gap-1.5 ticker-text text-[10px] uppercase tracking-widest text-muted-foreground">
+          <ArrowUpDown className="h-3 w-3" />
+          Sort
+          <select
+            value={sort}
+            onChange={(e) => setSort(e.target.value as SortMode)}
+            aria-label="Sort events"
+            className="border border-border bg-background px-1.5 py-1 text-xs text-foreground focus:border-primary focus:outline-none"
+          >
+            {SORT_OPTIONS.map((o) => (
+              <option key={o.id} value={o.id}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+
       {/* Filters */}
       <div className="mb-4 border border-border bg-surface p-3 sm:mb-6">
         <div className="mb-2 flex items-center justify-between">
