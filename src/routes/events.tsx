@@ -142,6 +142,7 @@ function EventsPage() {
   const [eventType, setEventType] = useState<EventType>("all");
   const [fromDate, setFromDate] = useState<string>("");
   const [toDate, setToDate] = useState<string>("");
+  const [sort, setSort] = useState<SortMode>("soonest");
 
   // Auto-apply geolocation once if user hasn't manually picked
   const [autoApplied, setAutoApplied] = useState(false);
@@ -178,11 +179,69 @@ function EventsPage() {
     }
   }, [query.data]);
 
-  const articles = query.data?.articles ?? [];
+  const rawArticles = query.data?.articles ?? [];
+
+  const typeVocab = useMemo(() => {
+    if (eventType === "all")
+      return ["event", "conference", "hackathon", "meetup", "summit", "workshop"];
+    const map: Record<Exclude<EventType, "all">, string[]> = {
+      conference: ["conference", "summit", "expo"],
+      meetup: ["meetup", "meet-up", "gathering"],
+      hackathon: ["hackathon", "hack day", "buildathon"],
+      workshop: ["workshop", "training", "bootcamp"],
+      summit: ["summit", "forum", "convention"],
+    };
+    return map[eventType];
+  }, [eventType]);
+
+  const articles = useMemo(() => {
+    const list = [...rawArticles];
+    if (sort === "newest") {
+      list.sort(
+        (a, b) =>
+          new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime(),
+      );
+    } else if (sort === "soonest") {
+      // GNews returns news ABOUT events, not the event date itself.
+      // Best proxy: most recently published announcements are most likely
+      // to describe the soonest upcoming events. Tie-break by relevance.
+      list.sort((a, b) => {
+        const dt =
+          new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime();
+        if (dt !== 0) return dt;
+        const sa = relevanceScore(`${a.title} ${a.description ?? ""}`, eventType, typeVocab);
+        const sb = relevanceScore(`${b.title} ${b.description ?? ""}`, eventType, typeVocab);
+        return sb - sa;
+      });
+    } else {
+      list.sort((a, b) => {
+        const sa = relevanceScore(`${a.title} ${a.description ?? ""}`, eventType, typeVocab);
+        const sb = relevanceScore(`${b.title} ${b.description ?? ""}`, eventType, typeVocab);
+        if (sb !== sa) return sb - sa;
+        return (
+          new Date(b.publishedAt).getTime() -
+          new Date(a.publishedAt).getTime()
+        );
+      });
+    }
+    return list;
+  }, [rawArticles, sort, eventType, typeVocab]);
+
   const hasFilters = useMemo(
     () => eventType !== "all" || !!fromDate || !!toDate,
     [eventType, fromDate, toDate],
   );
+
+  const activeDatePreset = useMemo(
+    () => rangeToPreset(fromDate, toDate),
+    [fromDate, toDate],
+  );
+
+  const applyDatePreset = (preset: DatePreset) => {
+    const r = presetToRange(preset);
+    setFromDate(r.from);
+    setToDate(r.to);
+  };
 
   const clearFilters = () => {
     setEventType("all");
