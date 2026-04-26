@@ -9,6 +9,7 @@ import {
   AlertTriangle,
   Filter,
   X,
+  ArrowUpDown,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { fetchEvents, type EventType } from "@/server/events";
@@ -31,6 +32,89 @@ const EVENT_TYPES: { id: EventType; label: string }[] = [
   { id: "workshop", label: "Workshop" },
   { id: "summit", label: "Summit" },
 ];
+
+type SortMode = "soonest" | "newest" | "relevance";
+
+const SORT_OPTIONS: { id: SortMode; label: string }[] = [
+  { id: "soonest", label: "Soonest" },
+  { id: "newest", label: "Newest" },
+  { id: "relevance", label: "Relevance" },
+];
+
+type DatePreset = "any" | "today" | "week" | "month";
+
+const DATE_PRESETS: { id: DatePreset; label: string }[] = [
+  { id: "any", label: "Any time" },
+  { id: "today", label: "Today" },
+  { id: "week", label: "This week" },
+  { id: "month", label: "This month" },
+];
+
+function isoDate(d: Date): string {
+  return d.toISOString().slice(0, 10);
+}
+
+function presetToRange(preset: DatePreset): { from: string; to: string } {
+  if (preset === "any") return { from: "", to: "" };
+  const now = new Date();
+  const from = new Date(now);
+  const to = new Date(now);
+  if (preset === "today") {
+    // from = now, to = +1 day to include events later today
+    to.setDate(to.getDate() + 1);
+  } else if (preset === "week") {
+    to.setDate(to.getDate() + 7);
+  } else if (preset === "month") {
+    to.setMonth(to.getMonth() + 1);
+  }
+  return { from: isoDate(from), to: isoDate(to) };
+}
+
+function rangeToPreset(from: string, to: string): DatePreset {
+  if (!from && !to) return "any";
+  const candidates: DatePreset[] = ["today", "week", "month"];
+  for (const p of candidates) {
+    const r = presetToRange(p);
+    if (r.from === from && r.to === to) return p;
+  }
+  return "any";
+}
+
+// Lightweight relevance scorer — favours items whose title/description contain
+// strong "future event" language and matches the active event type vocabulary.
+const RELEVANCE_TERMS = [
+  "register",
+  "rsvp",
+  "tickets",
+  "join us",
+  "announces",
+  "upcoming",
+  "save the date",
+  "agenda",
+  "keynote",
+  "speakers",
+  "eventbrite",
+  "lu.ma",
+  "luma",
+  "meetup.com",
+  "tix.africa",
+];
+
+function relevanceScore(
+  text: string,
+  eventType: EventType,
+  typeVocab: string[],
+): number {
+  const t = text.toLowerCase();
+  let score = 0;
+  for (const term of RELEVANCE_TERMS) {
+    if (t.includes(term)) score += 2;
+  }
+  for (const term of typeVocab) {
+    if (t.includes(term)) score += eventType === "all" ? 1 : 3;
+  }
+  return score;
+}
 
 export const Route = createFileRoute("/events")({
   component: EventsPage,
@@ -58,6 +142,7 @@ function EventsPage() {
   const [eventType, setEventType] = useState<EventType>("all");
   const [fromDate, setFromDate] = useState<string>("");
   const [toDate, setToDate] = useState<string>("");
+  const [sort, setSort] = useState<SortMode>("soonest");
 
   // Auto-apply geolocation once if user hasn't manually picked
   const [autoApplied, setAutoApplied] = useState(false);
@@ -94,11 +179,69 @@ function EventsPage() {
     }
   }, [query.data]);
 
-  const articles = query.data?.articles ?? [];
+  const rawArticles = query.data?.articles ?? [];
+
+  const typeVocab = useMemo(() => {
+    if (eventType === "all")
+      return ["event", "conference", "hackathon", "meetup", "summit", "workshop"];
+    const map: Record<Exclude<EventType, "all">, string[]> = {
+      conference: ["conference", "summit", "expo"],
+      meetup: ["meetup", "meet-up", "gathering"],
+      hackathon: ["hackathon", "hack day", "buildathon"],
+      workshop: ["workshop", "training", "bootcamp"],
+      summit: ["summit", "forum", "convention"],
+    };
+    return map[eventType];
+  }, [eventType]);
+
+  const articles = useMemo(() => {
+    const list = [...rawArticles];
+    if (sort === "newest") {
+      list.sort(
+        (a, b) =>
+          new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime(),
+      );
+    } else if (sort === "soonest") {
+      // GNews returns news ABOUT events, not the event date itself.
+      // Best proxy: most recently published announcements are most likely
+      // to describe the soonest upcoming events. Tie-break by relevance.
+      list.sort((a, b) => {
+        const dt =
+          new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime();
+        if (dt !== 0) return dt;
+        const sa = relevanceScore(`${a.title} ${a.description ?? ""}`, eventType, typeVocab);
+        const sb = relevanceScore(`${b.title} ${b.description ?? ""}`, eventType, typeVocab);
+        return sb - sa;
+      });
+    } else {
+      list.sort((a, b) => {
+        const sa = relevanceScore(`${a.title} ${a.description ?? ""}`, eventType, typeVocab);
+        const sb = relevanceScore(`${b.title} ${b.description ?? ""}`, eventType, typeVocab);
+        if (sb !== sa) return sb - sa;
+        return (
+          new Date(b.publishedAt).getTime() -
+          new Date(a.publishedAt).getTime()
+        );
+      });
+    }
+    return list;
+  }, [rawArticles, sort, eventType, typeVocab]);
+
   const hasFilters = useMemo(
     () => eventType !== "all" || !!fromDate || !!toDate,
     [eventType, fromDate, toDate],
   );
+
+  const activeDatePreset = useMemo(
+    () => rangeToPreset(fromDate, toDate),
+    [fromDate, toDate],
+  );
+
+  const applyDatePreset = (preset: DatePreset) => {
+    const r = presetToRange(preset);
+    setFromDate(r.from);
+    setToDate(r.to);
+  };
 
   const clearFilters = () => {
     setEventType("all");
@@ -210,6 +353,76 @@ function EventsPage() {
           Go
         </button>
       </form>
+
+      {/* Quick chips — toggle date range & event type without opening filters */}
+      <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-2">
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="ticker-text text-[10px] uppercase tracking-widest text-muted-foreground mr-0.5">
+            When
+          </span>
+          {DATE_PRESETS.map((p) => {
+            const active = activeDatePreset === p.id;
+            return (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => applyDatePreset(p.id)}
+                className={[
+                  "border px-2 py-1 ticker-text text-[10px] uppercase tracking-widest transition-colors",
+                  active
+                    ? "border-primary bg-primary/10 text-primary"
+                    : "border-border text-muted-foreground hover:border-primary hover:text-primary",
+                ].join(" ")}
+                aria-pressed={active}
+              >
+                {p.label}
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="ticker-text text-[10px] uppercase tracking-widest text-muted-foreground mr-0.5">
+            Type
+          </span>
+          {EVENT_TYPES.map((t) => {
+            const active = t.id === eventType;
+            return (
+              <button
+                key={`quick-${t.id}`}
+                type="button"
+                onClick={() => setEventType(t.id)}
+                className={[
+                  "border px-2 py-1 ticker-text text-[10px] uppercase tracking-widest transition-colors",
+                  active
+                    ? "border-primary bg-primary/10 text-primary"
+                    : "border-border text-muted-foreground hover:border-primary hover:text-primary",
+                ].join(" ")}
+                aria-pressed={active}
+              >
+                {t.label}
+              </button>
+            );
+          })}
+        </div>
+
+        <label className="ml-auto inline-flex items-center gap-1.5 ticker-text text-[10px] uppercase tracking-widest text-muted-foreground">
+          <ArrowUpDown className="h-3 w-3" />
+          Sort
+          <select
+            value={sort}
+            onChange={(e) => setSort(e.target.value as SortMode)}
+            aria-label="Sort events"
+            className="border border-border bg-background px-1.5 py-1 text-xs text-foreground focus:border-primary focus:outline-none"
+          >
+            {SORT_OPTIONS.map((o) => (
+              <option key={o.id} value={o.id}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
 
       {/* Filters */}
       <div className="mb-4 border border-border bg-surface p-3 sm:mb-6">
@@ -356,8 +569,13 @@ function EventsPage() {
       {/* Results */}
       {articles.length > 0 && (
         <>
-          <div className="mb-2 ticker-text text-[10px] uppercase tracking-widest text-muted-foreground">
-            {articles.length} {articles.length === 1 ? "event" : "events"}
+          <div className="mb-2 flex items-center justify-between ticker-text text-[10px] uppercase tracking-widest text-muted-foreground">
+            <span>
+              {articles.length} {articles.length === 1 ? "event" : "events"}
+            </span>
+            <span className="opacity-80">
+              Sorted by {SORT_OPTIONS.find((o) => o.id === sort)?.label}
+            </span>
           </div>
           <ul className="divide-y divide-border border border-border bg-surface">
             {articles.map((a, i) => {
