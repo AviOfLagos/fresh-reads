@@ -348,19 +348,44 @@ function EventsPage() {
     pop(`sort:${next}`);
   };
 
+  // Snapshot current filter/sort state and offer a one-tap Undo via toast.
+  const offerUndo = (label: string, prev: StoredPrefs) => {
+    toast(label, {
+      description: "Tap undo to restore your previous view.",
+      action: {
+        label: "Undo",
+        onClick: () => {
+          if (prev.eventType !== undefined) setEventType(prev.eventType);
+          if (prev.fromDate !== undefined) setFromDate(prev.fromDate);
+          if (prev.toDate !== undefined) setToDate(prev.toDate);
+          if (prev.sort !== undefined) setSort(prev.sort);
+          toast.success("Restored your previous view");
+        },
+      },
+    });
+  };
+
   const clearFilters = () => {
+    const snapshot: StoredPrefs = { eventType, fromDate, toDate };
+    const wasActive =
+      eventType !== "all" || !!fromDate || !!toDate;
     setEventType("all");
     setFromDate("");
     setToDate("");
     pop("clear");
+    if (wasActive) offerUndo("Filters cleared", snapshot);
   };
 
   const resetAll = () => {
+    const snapshot: StoredPrefs = { eventType, fromDate, toDate, sort };
+    const wasActive =
+      eventType !== "all" || !!fromDate || !!toDate || sort !== "soonest";
     setEventType("all");
     setFromDate("");
     setToDate("");
     setSort("soonest");
     pop("reset");
+    if (wasActive) offerUndo("Events view reset", snapshot);
   };
 
   const submitCustomCity = (e: React.FormEvent) => {
