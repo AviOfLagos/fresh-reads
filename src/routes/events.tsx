@@ -33,6 +33,89 @@ const EVENT_TYPES: { id: EventType; label: string }[] = [
   { id: "summit", label: "Summit" },
 ];
 
+type SortMode = "soonest" | "newest" | "relevance";
+
+const SORT_OPTIONS: { id: SortMode; label: string }[] = [
+  { id: "soonest", label: "Soonest" },
+  { id: "newest", label: "Newest" },
+  { id: "relevance", label: "Relevance" },
+];
+
+type DatePreset = "any" | "today" | "week" | "month";
+
+const DATE_PRESETS: { id: DatePreset; label: string }[] = [
+  { id: "any", label: "Any time" },
+  { id: "today", label: "Today" },
+  { id: "week", label: "This week" },
+  { id: "month", label: "This month" },
+];
+
+function isoDate(d: Date): string {
+  return d.toISOString().slice(0, 10);
+}
+
+function presetToRange(preset: DatePreset): { from: string; to: string } {
+  if (preset === "any") return { from: "", to: "" };
+  const now = new Date();
+  const from = new Date(now);
+  const to = new Date(now);
+  if (preset === "today") {
+    // from = now, to = +1 day to include events later today
+    to.setDate(to.getDate() + 1);
+  } else if (preset === "week") {
+    to.setDate(to.getDate() + 7);
+  } else if (preset === "month") {
+    to.setMonth(to.getMonth() + 1);
+  }
+  return { from: isoDate(from), to: isoDate(to) };
+}
+
+function rangeToPreset(from: string, to: string): DatePreset {
+  if (!from && !to) return "any";
+  const candidates: DatePreset[] = ["today", "week", "month"];
+  for (const p of candidates) {
+    const r = presetToRange(p);
+    if (r.from === from && r.to === to) return p;
+  }
+  return "any";
+}
+
+// Lightweight relevance scorer — favours items whose title/description contain
+// strong "future event" language and matches the active event type vocabulary.
+const RELEVANCE_TERMS = [
+  "register",
+  "rsvp",
+  "tickets",
+  "join us",
+  "announces",
+  "upcoming",
+  "save the date",
+  "agenda",
+  "keynote",
+  "speakers",
+  "eventbrite",
+  "lu.ma",
+  "luma",
+  "meetup.com",
+  "tix.africa",
+];
+
+function relevanceScore(
+  text: string,
+  eventType: EventType,
+  typeVocab: string[],
+): number {
+  const t = text.toLowerCase();
+  let score = 0;
+  for (const term of RELEVANCE_TERMS) {
+    if (t.includes(term)) score += 2;
+  }
+  for (const term of typeVocab) {
+    if (t.includes(term)) score += eventType === "all" ? 1 : 3;
+  }
+  return score;
+}
+
 export const Route = createFileRoute("/events")({
   component: EventsPage,
   head: () => ({
