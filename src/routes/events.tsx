@@ -596,16 +596,38 @@ function EventsPage() {
         </div>
       )}
 
-      {/* Loading */}
+      {/* Loading — initial fetch shows full skeleton list.
+          Background refetches (filter/sort changes) overlay a slim status bar
+          on top of the existing list so the page doesn't flash empty. */}
       {query.isLoading && (
         <div className="space-y-3" aria-busy="true" aria-live="polite">
           <div className="ticker-text text-[10px] uppercase tracking-widest text-muted-foreground inline-flex items-center gap-1.5">
             <Loader2 className="h-3 w-3 animate-spin" />
             Loading events for {city}…
           </div>
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="h-24 skeleton" />
-          ))}
+          <ul className="divide-y divide-border border border-border bg-surface">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <li
+                key={i}
+                className="p-3 sm:p-4 animate-fade-up"
+                style={{ animationDelay: `${i * 60}ms` }}
+              >
+                <div className="flex flex-col gap-2 sm:flex-row sm:gap-4">
+                  <div className="aspect-[16/10] w-full skeleton sm:w-40 sm:shrink-0" />
+                  <div className="min-w-0 flex-1 space-y-2">
+                    <div className="flex items-center gap-1.5">
+                      <div className="h-3 w-16 skeleton" />
+                      <div className="h-3 w-20 skeleton" />
+                    </div>
+                    <div className="h-4 w-11/12 skeleton" />
+                    <div className="h-4 w-3/4 skeleton" />
+                    <div className="h-3 w-full skeleton" />
+                    <div className="h-3 w-5/6 skeleton" />
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
 
@@ -628,41 +650,66 @@ function EventsPage() {
         </div>
       )}
 
-      {/* Empty */}
+      {/* Empty — friendly state with quick reset actions */}
       {!query.isLoading && !query.isError && articles.length === 0 && (
-        <div className="border border-border bg-surface p-6 text-center text-sm text-muted-foreground">
-          <Calendar className="mx-auto mb-2 h-6 w-6 opacity-40" />
-          <p>
-            No upcoming{" "}
+        <div className="border border-border bg-surface p-6 text-center text-sm text-muted-foreground animate-fade-up">
+          <Calendar className="mx-auto mb-2 h-8 w-8 opacity-40" />
+          <p className="text-foreground font-medium">
+            No events match your filters
+          </p>
+          <p className="mt-1 text-xs">
+            We couldn't find any{" "}
             {eventType !== "all" ? (
               <span className="text-foreground">{eventType}</span>
             ) : (
               "tech"
             )}{" "}
-            events found for{" "}
-            <span className="text-foreground">{city}</span>
+            events in <span className="text-foreground">{city}</span>
             {(fromDate || toDate) && (
               <>
                 {" "}
                 between{" "}
-                <span className="text-foreground">
-                  {fromDate || "any"}
-                </span>{" "}
+                <span className="text-foreground">{fromDate || "any"}</span>{" "}
                 and <span className="text-foreground">{toDate || "any"}</span>
               </>
             )}
-            .
+            . Try widening your filters or picking another city.
           </p>
-          <div className="mt-2 flex flex-wrap items-center justify-center gap-2 text-xs">
+          <div className="mt-3 flex flex-wrap items-center justify-center gap-2 text-xs">
             {hasFilters && (
               <button
                 onClick={clearFilters}
-                className="border border-border bg-background px-2 py-1 ticker-text text-[10px] uppercase tracking-widest hover:border-primary hover:text-primary transition-colors"
+                className="inline-flex items-center gap-1 border border-border bg-background px-2 py-1 ticker-text text-[10px] uppercase tracking-widest hover:border-primary hover:text-primary transition-colors"
               >
+                <X className="h-3 w-3" />
                 Clear filters
               </button>
             )}
-            <span className="opacity-70">or try a different city.</span>
+            {sort !== "soonest" && (
+              <button
+                onClick={() => setSortWithPop("soonest")}
+                className="inline-flex items-center gap-1 border border-border bg-background px-2 py-1 ticker-text text-[10px] uppercase tracking-widest hover:border-primary hover:text-primary transition-colors"
+              >
+                <ArrowUpDown className="h-3 w-3" />
+                Sort by soonest
+              </button>
+            )}
+            {(hasFilters || sort !== "soonest") && (
+              <button
+                onClick={resetAll}
+                className="inline-flex items-center gap-1 border border-primary bg-primary/10 text-primary px-2 py-1 ticker-text text-[10px] uppercase tracking-widest hover:bg-primary/20 transition-colors"
+              >
+                <RotateCcw className="h-3 w-3" />
+                Reset everything
+              </button>
+            )}
+            <button
+              onClick={() => query.refetch()}
+              className="inline-flex items-center gap-1 border border-border bg-background px-2 py-1 ticker-text text-[10px] uppercase tracking-widest hover:border-primary hover:text-primary transition-colors"
+            >
+              <RefreshCw className="h-3 w-3" />
+              Try again
+            </button>
           </div>
         </div>
       )}
@@ -671,14 +718,23 @@ function EventsPage() {
       {articles.length > 0 && (
         <>
           <div className="mb-2 flex items-center justify-between ticker-text text-[10px] uppercase tracking-widest text-muted-foreground">
-            <span>
+            <span className="inline-flex items-center gap-1.5">
+              {query.isFetching && !query.isLoading && (
+                <Loader2 className="h-3 w-3 animate-spin text-primary" />
+              )}
               {articles.length} {articles.length === 1 ? "event" : "events"}
             </span>
-            <span className="opacity-80">
+            <span className="opacity-80 inline-flex items-center gap-1">
+              <ArrowUpDown className="h-3 w-3" />
               Sorted by {SORT_OPTIONS.find((o) => o.id === sort)?.label}
             </span>
           </div>
-          <ul className="divide-y divide-border border border-border bg-surface">
+          {/* Re-key the list whenever sort/filters/city change so cards
+              remount and replay the staggered entrance animation. */}
+          <ul
+            key={`${city}|${country}|${eventType}|${fromDate}|${toDate}|${sort}`}
+            className="divide-y divide-border border border-border bg-surface"
+          >
             {articles.map((a, i) => {
               let when = "recently";
               try {
@@ -692,7 +748,7 @@ function EventsPage() {
                 <li
                   key={a.id}
                   className="p-3 sm:p-4 animate-fade-up"
-                  style={{ animationDelay: `${Math.min(i * 30, 240)}ms` }}
+                  style={{ animationDelay: `${Math.min(i * 50, 400)}ms` }}
                 >
                   <div className="flex flex-col gap-2 sm:flex-row sm:gap-4">
                     {a.image && (
