@@ -569,8 +569,13 @@ function EventsPage() {
       {/* Results */}
       {articles.length > 0 && (
         <>
-          <div className="mb-2 ticker-text text-[10px] uppercase tracking-widest text-muted-foreground">
-            {articles.length} {articles.length === 1 ? "event" : "events"}
+          <div className="mb-2 flex items-center justify-between ticker-text text-[10px] uppercase tracking-widest text-muted-foreground">
+            <span>
+              {articles.length} {articles.length === 1 ? "event" : "events"}
+            </span>
+            <span className="opacity-80">
+              Sorted by {SORT_OPTIONS.find((o) => o.id === sort)?.label}
+            </span>
           </div>
           <ul className="divide-y divide-border border border-border bg-surface">
             {articles.map((a, i) => {
