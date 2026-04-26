@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Calendar,
   MapPin,
@@ -10,11 +10,15 @@ import {
   Filter,
   X,
   ArrowUpDown,
+  RefreshCw,
+  ArrowDown,
+  RotateCcw,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { fetchEvents, type EventType } from "@/server/events";
 import { useGeolocation } from "@/lib/use-geolocation";
 import { cacheArticles } from "@/lib/article-cache";
+import { usePullToRefresh } from "@/lib/use-pull-to-refresh";
 
 const POPULAR_CITIES = [
   { city: "Lagos", country: "ng", label: "Lagos · Nigeria" },
