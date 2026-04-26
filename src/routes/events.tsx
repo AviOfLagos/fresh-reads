@@ -174,19 +174,26 @@ export const Route = createFileRoute("/events")({
 function EventsPage() {
   const geo = useGeolocation();
 
+  // Hydrate from localStorage on first render so we render the same view
+  // the user left behind. Defaults are Lagos / NG / soonest.
+  const initial = useMemo(() => loadPrefs() ?? {}, []);
+
   // Location
-  const [city, setCity] = useState<string>("Lagos");
-  const [country, setCountry] = useState<string>("ng");
+  const [city, setCity] = useState<string>(initial.city ?? "Lagos");
+  const [country, setCountry] = useState<string>(initial.country ?? "ng");
   const [customCity, setCustomCity] = useState<string>("");
 
   // Filters
-  const [eventType, setEventType] = useState<EventType>("all");
-  const [fromDate, setFromDate] = useState<string>("");
-  const [toDate, setToDate] = useState<string>("");
-  const [sort, setSort] = useState<SortMode>("soonest");
+  const [eventType, setEventType] = useState<EventType>(initial.eventType ?? "all");
+  const [fromDate, setFromDate] = useState<string>(initial.fromDate ?? "");
+  const [toDate, setToDate] = useState<string>(initial.toDate ?? "");
+  const [sort, setSort] = useState<SortMode>(initial.sort ?? "soonest");
 
-  // Auto-apply geolocation once if user hasn't manually picked
-  const [autoApplied, setAutoApplied] = useState(false);
+  // If we hydrated stored prefs, treat that as a manual choice so geolocation
+  // doesn't quietly overwrite the user's last city.
+  const [autoApplied, setAutoApplied] = useState(
+    !!(initial.city && initial.country),
+  );
   useEffect(() => {
     if (!autoApplied && geo.status === "ok" && geo.city && geo.country) {
       setCity(geo.city);
@@ -194,6 +201,11 @@ function EventsPage() {
       setAutoApplied(true);
     }
   }, [geo.status, geo.city, geo.country, autoApplied]);
+
+  // Persist whenever any tracked pref changes.
+  useEffect(() => {
+    savePrefs({ city, country, eventType, fromDate, toDate, sort });
+  }, [city, country, eventType, fromDate, toDate, sort]);
 
   const query = useQuery({
     queryKey: ["events", city, country, eventType, fromDate, toDate],
@@ -220,9 +232,28 @@ function EventsPage() {
     }
   }, [query.data]);
 
-  // Pull-to-refresh — only active on touch devices
+  // Pull-to-refresh — only active on touch devices.
+  // If the underlying refetch fails (rate limit, offline), surface a
+  // friendly toast with a one-tap retry instead of failing silently.
   const refetch = useCallback(async () => {
-    await query.refetch();
+    try {
+      const result = await query.refetch();
+      if (result.error) throw result.error;
+    } catch (err) {
+      const message =
+        err instanceof Error && err.message
+          ? err.message
+          : "Couldn't refresh events. Check your connection.";
+      toast.error("Refresh failed", {
+        description: message,
+        action: {
+          label: "Retry",
+          onClick: () => {
+            void refetch();
+          },
+        },
+      });
+    }
   }, [query]);
   const ptr = usePullToRefresh(refetch);
 
