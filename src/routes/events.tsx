@@ -15,10 +15,47 @@ import {
   RotateCcw,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { toast } from "sonner";
 import { fetchEvents, type EventType } from "@/server/events";
 import { useGeolocation } from "@/lib/use-geolocation";
 import { cacheArticles } from "@/lib/article-cache";
 import { usePullToRefresh } from "@/lib/use-pull-to-refresh";
+
+// LocalStorage key for persisting the user's quick-filter + sort state.
+const PREFS_KEY = "events:prefs:v1";
+
+interface StoredPrefs {
+  city?: string;
+  country?: string;
+  eventType?: EventType;
+  fromDate?: string;
+  toDate?: string;
+  sort?: SortMode;
+}
+
+function loadPrefs(): StoredPrefs | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(PREFS_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw) as StoredPrefs;
+  } catch {
+    return null;
+  }
+}
+
+function savePrefs(p: StoredPrefs) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(PREFS_KEY, JSON.stringify(p));
+  } catch {
+    /* quota or disabled — silently ignore */
+  }
+}
+
+// Shared focus ring for chip-style controls — keyboard-only via focus-visible.
+const CHIP_FOCUS =
+  "focus:outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background";
 
 const POPULAR_CITIES = [
   { city: "Lagos", country: "ng", label: "Lagos · Nigeria" },
