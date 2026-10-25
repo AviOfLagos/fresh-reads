@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Newspaper, Loader2, Sparkles, AlertCircle } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
-import { fetchNews } from "@/server/news";
+import { fetchNews } from "@/lib/news.functions";
 import { topicsToQuery, COUNTRY_OPTIONS } from "@/lib/interests";
 import type { CategoryId } from "@/lib/news-types";
 
