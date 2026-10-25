@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Watchfire">
+  <title>Watchfire</title>
+  <!-- a beacon fire on a peak: the warning lit before trouble reaches the valley -->
+  <rect width="64" height="64" rx="12" fill="#14110f"/>
+  <path d="M6 54 L26 30 L32 36 L38 30 L58 54 Z" fill="#3a332e"/>
+  <path d="M32 9 C37 17 43 20 40 29 C38.6 33.5 35.6 35.5 32 35.5 C28.4 35.5 25.4 33.5 24 29 C21.6 21 27.5 18.5 32 9 Z" fill="#f2552c"/>
+  <path d="M32 19 C34.4 23.2 36.8 25 35.6 29.4 C35 31.6 33.6 32.8 32 32.8 C30.4 32.8 29 31.6 28.4 29.4 C27.4 25.6 30 23.6 32 19 Z" fill="#ffc24a"/>
+</svg>

@@ -161,7 +161,7 @@ export const Route = createFileRoute("/events")({
   component: EventsPage,
   head: () => ({
     meta: [
-      { title: "Tech Events — Lagos & Africa | Newsroom" },
+      { title: "Tech Events — Lagos & Africa | Watchfire" },
       {
         name: "description",
         content:
