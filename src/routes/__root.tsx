@@ -65,7 +65,15 @@ export const Route = createRootRouteWithContext<RouterContext>()({
       { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/a97c6dce-3208-45a3-b1b1-24128386af00/id-preview-fb4bda3f--f08191c7-2e9b-4c91-98d9-afa23685766d.lovable.app-1776897758370.png" },
       { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/a97c6dce-3208-45a3-b1b1-24128386af00/id-preview-fb4bda3f--f08191c7-2e9b-4c91-98d9-afa23685766d.lovable.app-1776897758370.png" },
     ],
-    links: [{ rel: "stylesheet", href: appCss }],
+    links: [
+      { rel: "stylesheet", href: appCss },
+      {
+        rel: "alternate",
+        type: "application/rss+xml",
+        title: "Fresh Reads — Tech news feed",
+        href: "https://fresh-reads.lovable.app/api/public/rss",
+      },
+    ],
   }),
   shellComponent: RootShell,
   component: RootComponent,
