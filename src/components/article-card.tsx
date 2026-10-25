@@ -49,7 +49,7 @@ export function ArticleCard({ article, variant = "default", index = 0 }: Props) 
             />
           ) : (
             <div className="flex h-full w-full items-center justify-center text-muted-foreground">
-              <span className="font-serif text-4xl">N</span>
+              <img src="/watchfire.svg" alt="" className="h-12 w-12 opacity-50" />
             </div>
           )}
           <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
@@ -82,6 +82,7 @@ export function ArticleCard({ article, variant = "default", index = 0 }: Props) 
               {article.description}
             </p>
           )}
+          <WatchfireMeta article={article} />
           <div className="mt-2 flex items-center gap-2 ticker-text text-[10px] uppercase tracking-widest text-muted-foreground sm:mt-3 sm:text-[11px]">
             <Clock className="h-3 w-3" />
             <span>{timeAgo}</span>
@@ -110,7 +111,7 @@ export function ArticleCard({ article, variant = "default", index = 0 }: Props) 
             />
           ) : (
             <div className="flex h-full w-full items-center justify-center text-muted-foreground">
-              <span className="font-serif text-base sm:text-xl">N</span>
+              <img src="/watchfire.svg" alt="" className="h-6 w-6 opacity-50 sm:h-8 sm:w-8" />
             </div>
           )}
         </div>
@@ -146,7 +147,7 @@ export function ArticleCard({ article, variant = "default", index = 0 }: Props) 
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center text-muted-foreground">
-            <span className="font-serif text-3xl">N</span>
+            <img src="/watchfire.svg" alt="" className="h-10 w-10 opacity-50" />
           </div>
         )}
         <button
@@ -178,7 +179,41 @@ export function ArticleCard({ article, variant = "default", index = 0 }: Props) 
             {article.description}
           </p>
         )}
+        <WatchfireMeta article={article} />
       </div>
     </Link>
+  );
+}
+
+function WatchfireMeta({ article }: { article: Article }) {
+  if (!article.status && !article.action) return null;
+  const tone =
+    article.severity === "critical"
+      ? "border-destructive text-destructive"
+      : article.severity === "high"
+        ? "border-primary text-primary"
+        : "border-border text-muted-foreground";
+  return (
+    <div className="mt-2 space-y-1">
+      {article.status && (
+        <span
+          className={`inline-block border px-1.5 py-0.5 ticker-text text-[9px] uppercase tracking-widest ${tone}`}
+          title={
+            article.status === "confirmed"
+              ? "From an advisory database or the researchers who found it"
+              : "Reported by the security press"
+          }
+        >
+          {article.severity === "critical" ? "Critical · " : ""}
+          {article.status}
+        </span>
+      )}
+      {article.action && (
+        <p className="text-xs text-foreground/90 line-clamp-2">
+          <span className="font-semibold">What to do: </span>
+          {article.action}
+        </p>
+      )}
+    </div>
   );
 }

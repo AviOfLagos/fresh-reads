@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import type { Article, NewsResponse } from "@/lib/news-types";
+import { WATCHFIRE_FEED, type Article, type NewsResponse } from "@/lib/news-types";
 
 const GNEWS_BASE = "https://gnews.io/api/v4";
 
@@ -42,8 +42,59 @@ function normalize(arts: GNewsArticle[]): Article[] {
   }));
 }
 
+interface WatchfireItem {
+  id: string;
+  title: string;
+  url: string;
+  source: string;
+  published: string;
+  topics: string[];
+  status: "confirmed" | "reported";
+  severity: "critical" | "high" | "info";
+  summary: string;
+  action: string;
+}
+
+// The feed is rebuilt every two hours; a few minutes of memory saves a fetch
+// per page view without ever serving anything stale for long.
+let feedMemo: { at: number; items: WatchfireItem[] } | null = null;
+async function watchfireItems(): Promise<WatchfireItem[]> {
+  if (feedMemo && Date.now() - feedMemo.at < 5 * 60 * 1000) return feedMemo.items;
+  // WATCHFIRE_FEED_URL overrides the published feed (a local build, a staging copy).
+  const res = await fetch(process.env.WATCHFIRE_FEED_URL || WATCHFIRE_FEED, {
+    headers: { Accept: "application/json" },
+  });
+  if (!res.ok) throw new Error(`Watchfire feed ${res.status}`);
+  const json = (await res.json()) as { items?: WatchfireItem[] };
+  feedMemo = { at: Date.now(), items: json.items ?? [] };
+  return feedMemo.items;
+}
+
+function fromWatchfire(i: WatchfireItem): Article {
+  let host = "";
+  try {
+    host = new URL(i.url).origin;
+  } catch {
+    host = "";
+  }
+  return {
+    id: "wf-" + i.id,
+    title: i.title,
+    description: i.summary || null,
+    content: i.summary || null,
+    url: i.url,
+    image: null,
+    publishedAt: i.published,
+    source: { name: i.source, url: host },
+    status: i.status,
+    severity: i.severity,
+    action: i.action || undefined,
+    topics: i.topics,
+  };
+}
+
 const inputSchema = z.object({
-  category: z.string().min(1).max(40).default("technology"),
+  category: z.string().min(1).max(40).default("security"),
   query: z.string().max(200).optional(),
   country: z.string().min(2).max(5).optional(),
   lang: z.string().min(2).max(5).default("en"),
@@ -53,6 +104,28 @@ const inputSchema = z.object({
 export const fetchNews = createServerFn({ method: "GET" })
   .inputValidator((input: unknown) => inputSchema.parse(input))
   .handler(async ({ data }): Promise<NewsResponse> => {
+    if (data.category !== "technology") {
+      try {
+        const q = data.query?.trim().toLowerCase();
+        const items = (await watchfireItems()).filter(
+          (i) =>
+            (data.category === "security" || i.topics.includes(data.category)) &&
+            (!q || (i.title + " " + i.summary).toLowerCase().includes(q)),
+        );
+        return {
+          articles: items.slice(0, Math.max(data.max, 50)).map(fromWatchfire),
+          totalArticles: items.length,
+          error: null,
+        };
+      } catch (err) {
+        console.error("watchfire feed failed:", err);
+        return {
+          articles: [],
+          totalArticles: 0,
+          error: "Could not load the Watchfire feed. Try again in a minute.",
+        };
+      }
+    }
     const apiKey = process.env.GNEWS_API_KEY;
     if (!apiKey) {
       return {

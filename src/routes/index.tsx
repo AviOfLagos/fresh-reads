@@ -19,7 +19,7 @@ import { Sparkles } from "lucide-react";
 const validCategoryIds = CATEGORIES.map((c) => c.id) as [CategoryId, ...CategoryId[]];
 
 const searchSchema = z.object({
-  category: fallback(z.enum(validCategoryIds), "technology").default("technology"),
+  category: fallback(z.enum(validCategoryIds), "security").default("security"),
 });
 
 export const Route = createFileRoute("/")({
@@ -63,7 +63,8 @@ function FeedPage() {
   }, [query.data]);
 
   const categoryLabel = CATEGORIES.find((c) => c.id === category)?.label ?? "News";
-  const liveOn = enabled.includes("gnews");
+  // "Tech news" is GNews; every other tab is the Watchfire feed.
+  const liveOn = enabled.includes(category === "technology" ? "gnews" : "watchfire");
   const articles = liveOn ? query.data?.articles ?? [] : [];
 
   const isOffline = typeof navigator !== "undefined" && !navigator.onLine;

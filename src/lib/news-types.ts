@@ -10,6 +10,12 @@ export interface Article {
     name: string;
     url: string;
   };
+  /** Watchfire items: "confirmed" (advisory / the researchers) or "reported" (press). */
+  status?: "confirmed" | "reported";
+  severity?: "critical" | "high" | "info";
+  /** One concrete step for the reader, when there is one. */
+  action?: string;
+  topics?: string[];
 }
 
 export interface NewsResponse {
@@ -18,15 +24,22 @@ export interface NewsResponse {
   error: string | null;
 }
 
+// Watchfire: what developers should know about, and what to do. Every tab but
+// "technology" reads the Watchfire feed (advisory databases, the researchers
+// who find supply-chain malware, security press); "technology" is GNews.
 export const CATEGORIES = [
-  { id: "general", label: "Top Stories" },
-  { id: "business", label: "Business" },
-  { id: "technology", label: "Technology" },
-  { id: "world", label: "World" },
-  { id: "sports", label: "Sports" },
-  { id: "science", label: "Science" },
-  { id: "health", label: "Health" },
-  { id: "entertainment", label: "Entertainment" },
+  { id: "security", label: "All alerts" },
+  { id: "npm", label: "npm" },
+  { id: "pypi", label: "Python" },
+  { id: "rust", label: "Rust" },
+  { id: "go", label: "Go" },
+  { id: "ai-tools", label: "AI tools" },
+  { id: "ci-cd", label: "CI/CD" },
+  { id: "vulns", label: "Exploited & critical" },
+  { id: "snare", label: "snare" },
+  { id: "technology", label: "Tech news" },
 ] as const;
+
+export const WATCHFIRE_FEED = "https://nexlabz.github.io/watchfire-feed/news.json";
 
 export type CategoryId = (typeof CATEGORIES)[number]["id"];

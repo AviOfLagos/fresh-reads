@@ -15,6 +15,15 @@ export interface NewsSource {
 
 export const SOURCES: NewsSource[] = [
   {
+    id: "watchfire",
+    name: "Watchfire",
+    short: "WF",
+    description:
+      "Supply-chain malware, compromised packages and exploited flaws — from advisory databases and the researchers who find them",
+    live: true,
+    accent: "text-primary",
+  },
+  {
     id: "gnews",
     name: "GNews",
     short: "GN",

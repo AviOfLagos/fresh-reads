@@ -45,33 +45,33 @@ export const Route = createRootRouteWithContext<RouterContext>()({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Newsroom — Live news, headlines & analysis" },
+      { title: "Watchfire — what developers should know, and what to do" },
       {
         name: "description",
         content:
-          "Real-time global news across business, tech, world, sports, science, and health from trusted sources.",
+          "Supply-chain malware, compromised packages, AI-tool attacks and actively exploited flaws — from advisory databases and the researchers who find them, each with what to do.",
       },
-      { property: "og:title", content: "Newsroom — Live news, headlines & analysis" },
+      { property: "og:title", content: "Watchfire — what developers should know, and what to do" },
       {
         property: "og:description",
-        content: "Real-time global news from trusted sources.",
+        content: "Supply-chain malware, compromised packages and exploited flaws, each with what to do.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
-      { name: "twitter:title", content: "Newsroom — Live news, headlines & analysis" },
-      { name: "description", content: "Daily Digest Delight is a news aggregator app that fetches and displays articles from multiple sources." },
-      { property: "og:description", content: "Daily Digest Delight is a news aggregator app that fetches and displays articles from multiple sources." },
-      { name: "twitter:description", content: "Daily Digest Delight is a news aggregator app that fetches and displays articles from multiple sources." },
-      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/a97c6dce-3208-45a3-b1b1-24128386af00/id-preview-fb4bda3f--f08191c7-2e9b-4c91-98d9-afa23685766d.lovable.app-1776897758370.png" },
-      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/a97c6dce-3208-45a3-b1b1-24128386af00/id-preview-fb4bda3f--f08191c7-2e9b-4c91-98d9-afa23685766d.lovable.app-1776897758370.png" },
+      { name: "twitter:title", content: "Watchfire — what developers should know, and what to do" },
+      {
+        name: "twitter:description",
+        content: "Supply-chain malware, compromised packages and exploited flaws, each with what to do.",
+      },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
+      { rel: "icon", type: "image/svg+xml", href: "/watchfire.svg" },
       {
         rel: "alternate",
         type: "application/rss+xml",
         title: "Fresh Reads — Tech news feed",
-        href: "https://fresh-reads.lovable.app/api/public/rss",
+        href: "https://nexlabz.github.io/watchfire-feed/feed.xml",
       },
     ],
   }),
@@ -107,7 +107,7 @@ function RootComponent() {
         <footer className="border-t border-border py-6 mt-12">
           <div className="mx-auto max-w-7xl px-4 flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground">
             <span className="ticker-text uppercase tracking-widest">
-              © {new Date().getFullYear()} Newsroom
+              © {new Date().getFullYear()} Watchfire
             </span>
             <InterestsButton variant="footer" />
             <span className="ticker-text uppercase tracking-widest">

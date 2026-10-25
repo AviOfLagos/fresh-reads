@@ -39,13 +39,11 @@ export function SiteHeader() {
     <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur-md">
       <div className="mx-auto flex h-12 max-w-7xl items-center justify-between gap-1 px-2 sm:h-14 sm:gap-4 sm:px-4">
         <Link to="/" className="flex items-center gap-1.5 group shrink-0">
-          <div className="flex h-7 w-7 items-center justify-center bg-primary text-primary-foreground sm:h-8 sm:w-8">
-            <span className="font-serif text-base font-bold leading-none sm:text-lg">N</span>
-          </div>
+          <img src="/watchfire.svg" alt="" className="h-7 w-7 sm:h-8 sm:w-8" />
           <div className="hidden xs:flex flex-col leading-tight">
-            <span className="font-serif text-sm font-bold tracking-tight sm:text-base">NEWSROOM</span>
+            <span className="font-serif text-sm font-bold tracking-tight sm:text-base">WATCHFIRE</span>
             <span className="ticker-text text-[8px] text-muted-foreground uppercase tracking-widest sm:text-[9px]">
-              Live Wire
+              Patch before it spreads
             </span>
           </div>
         </Link>
