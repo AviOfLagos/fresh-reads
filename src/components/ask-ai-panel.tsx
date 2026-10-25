@@ -13,7 +13,7 @@ import {
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/use-auth";
-import { askArticleQuestion, suggestFollowupQuestions } from "@/server/ask-ai";
+import { askArticleQuestion, suggestFollowupQuestions } from "@/lib/ask-ai.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { AuthDialog } from "@/components/auth-dialog";
 import type { Article } from "@/lib/news-types";

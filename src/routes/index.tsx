@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { z } from "zod";
 import { zodValidator, fallback } from "@tanstack/zod-adapter";
-import { fetchNews } from "@/server/news";
+import { fetchNews } from "@/lib/news.functions";
 import { CATEGORIES, type CategoryId } from "@/lib/news-types";
 import { ArticleCard } from "@/components/article-card";
 import { FeedSkeleton } from "@/components/article-skeleton";

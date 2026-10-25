@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Sparkles, ChevronDown, ChevronUp, Clock, AlertTriangle, Loader2 } from "lucide-react";
-import { summarizeArticle, type SummaryPayload } from "@/server/summarize";
+import { summarizeArticle, type SummaryPayload } from "@/lib/summarize.functions";
 import type { Article } from "@/lib/news-types";
 
 const CACHE_KEY = "newsroom.summaries.v1";

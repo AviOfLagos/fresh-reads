@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
-import { fetchEvents, type EventType } from "@/server/events";
+import { fetchEvents, type EventType } from "@/lib/events.functions";
 import { useGeolocation } from "@/lib/use-geolocation";
 import { cacheArticles } from "@/lib/article-cache";
 import { usePullToRefresh } from "@/lib/use-pull-to-refresh";

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Search as SearchIcon, X } from "lucide-react";
 import { z } from "zod";
 import { zodValidator, fallback } from "@tanstack/zod-adapter";
-import { fetchNews } from "@/server/news";
+import { fetchNews } from "@/lib/news.functions";
 import { ArticleCard } from "@/components/article-card";
 import { ArticleSkeleton } from "@/components/article-skeleton";
 import { ErrorState, EmptyState } from "@/components/error-state";
