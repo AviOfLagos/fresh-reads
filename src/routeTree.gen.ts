@@ -14,6 +14,7 @@ import { Route as BookmarksRouteImport } from './routes/bookmarks'
 import { Route as EventsRouteImport } from './routes/events'
 import { Route as SearchRouteImport } from './routes/search'
 import { Route as ArticleIdRouteImport } from './routes/article.$id'
+import { Route as ApiPublicRssRouteImport } from './routes/api/public/rss'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -40,6 +41,11 @@ const ArticleIdRoute = ArticleIdRouteImport.update({
   path: '/article/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicRssRoute = ApiPublicRssRouteImport.update({
+  id: '/api/public/rss',
+  path: '/api/public/rss',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -47,6 +53,7 @@ export interface FileRoutesByFullPath {
   '/events': typeof EventsRoute
   '/search': typeof SearchRoute
   '/article/$id': typeof ArticleIdRoute
+  '/api/public/rss': typeof ApiPublicRssRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -54,6 +61,7 @@ export interface FileRoutesByTo {
   '/events': typeof EventsRoute
   '/search': typeof SearchRoute
   '/article/$id': typeof ArticleIdRoute
+  '/api/public/rss': typeof ApiPublicRssRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -62,13 +70,33 @@ export interface FileRoutesById {
   '/events': typeof EventsRoute
   '/search': typeof SearchRoute
   '/article/$id': typeof ArticleIdRoute
+  '/api/public/rss': typeof ApiPublicRssRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/bookmarks' | '/events' | '/search' | '/article/$id'
+  fullPaths:
+    | '/'
+    | '/bookmarks'
+    | '/events'
+    | '/search'
+    | '/article/$id'
+    | '/api/public/rss'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/bookmarks' | '/events' | '/search' | '/article/$id'
-  id: '__root__' | '/' | '/bookmarks' | '/events' | '/search' | '/article/$id'
+  to:
+    | '/'
+    | '/bookmarks'
+    | '/events'
+    | '/search'
+    | '/article/$id'
+    | '/api/public/rss'
+  id:
+    | '__root__'
+    | '/'
+    | '/bookmarks'
+    | '/events'
+    | '/search'
+    | '/article/$id'
+    | '/api/public/rss'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -77,6 +105,7 @@ export interface RootRouteChildren {
   EventsRoute: typeof EventsRoute
   SearchRoute: typeof SearchRoute
   ArticleIdRoute: typeof ArticleIdRoute
+  ApiPublicRssRoute: typeof ApiPublicRssRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -116,6 +145,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ArticleIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/rss': {
+      id: '/api/public/rss'
+      path: '/api/public/rss'
+      fullPath: '/api/public/rss'
+      preLoaderRoute: typeof ApiPublicRssRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -125,6 +161,7 @@ const rootRouteChildren: RootRouteChildren = {
   EventsRoute: EventsRoute,
   SearchRoute: SearchRoute,
   ArticleIdRoute: ArticleIdRoute,
+  ApiPublicRssRoute: ApiPublicRssRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
