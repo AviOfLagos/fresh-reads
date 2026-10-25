@@ -1,8 +1,10 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { z as z4 } from "zod/v4";
-import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
-import { claude, MODEL, FALLBACK, aiError } from "./claude.server";
+
+// Gemini through its OpenAI-compatible endpoint, with your own key
+// (GEMINI_API_KEY where the site runs). GEMINI_MODEL overrides the model.
+const AI_URL = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
+const AI_MODEL = process.env.GEMINI_MODEL || "gemini-3.8-flash";
 
 const inputSchema = z.object({
   articleId: z.string().min(1).max(200),
@@ -33,17 +35,11 @@ Rules:
 - "Why it matters" is one sentence (<= 200 chars) explaining the broader stake.
 - No markdown, no emoji, no quotes around the strings.`;
 
-const SummarySchema = z4.object({
-  tldr: z4.string().describe("One-sentence TL;DR"),
-  bullets: z4.array(z4.string()).describe("Up to 5 bullets, each adding new info"),
-  whyItMatters: z4.string(),
-});
-
 export const summarizeArticle = createServerFn({ method: "POST" })
   .inputValidator((input) => inputSchema.parse(input))
   .handler(async ({ data }): Promise<SummarizeResult> => {
-    const ai = claude();
-    if (!ai) {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
       return { summary: null, error: "AI is not configured." };
     }
 
@@ -61,20 +57,70 @@ export const summarizeArticle = createServerFn({ method: "POST" })
       .join("\n\n");
 
     try {
-      const res = await ai.beta.messages.parse({
-        ...FALLBACK,
-        model: MODEL,
-        max_tokens: 4000,
-        system: SYSTEM_PROMPT,
-        messages: [{ role: "user", content: userPrompt }],
-        output_config: { effort: "low", format: betaZodOutputFormat(SummarySchema) },
+      const res = await fetch(AI_URL, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: AI_MODEL,
+          messages: [
+            { role: "system", content: SYSTEM_PROMPT },
+            { role: "user", content: userPrompt },
+          ],
+          tools: [
+            {
+              type: "function",
+              function: {
+                name: "emit_summary",
+                description: "Return a structured summary of the article.",
+                parameters: {
+                  type: "object",
+                  properties: {
+                    tldr: { type: "string", description: "One-sentence TL;DR" },
+                    bullets: {
+                      type: "array",
+                      items: { type: "string" },
+                      minItems: 0,
+                      maxItems: 5,
+                    },
+                    whyItMatters: { type: "string" },
+                  },
+                  required: ["tldr", "bullets", "whyItMatters"],
+                  additionalProperties: false,
+                },
+              },
+            },
+          ],
+          tool_choice: { type: "function", function: { name: "emit_summary" } },
+        }),
       });
-      if (res.stop_reason === "refusal") {
-        return { summary: null, error: "AI declined to summarize this article." };
+
+      if (res.status === 429) {
+        return { summary: null, error: "Rate limited — please try again in a moment." };
       }
-      const parsed = res.parsed_output;
-      if (!parsed) {
+      if (res.status === 402) {
+        return { summary: null, error: "AI quota exhausted — try again later." };
+      }
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        console.error("AI gateway error", res.status, text);
+        return { summary: null, error: `AI request failed (${res.status}).` };
+      }
+
+      const json = await res.json();
+      const toolCall = json.choices?.[0]?.message?.tool_calls?.[0];
+      const argsRaw = toolCall?.function?.arguments;
+      if (!argsRaw) {
         return { summary: null, error: "AI returned no structured summary." };
+      }
+
+      let parsed: { tldr?: string; bullets?: string[]; whyItMatters?: string };
+      try {
+        parsed = JSON.parse(argsRaw);
+      } catch {
+        return { summary: null, error: "Failed to parse AI response." };
       }
 
       const tldr = String(parsed.tldr ?? "").trim();
@@ -104,7 +150,8 @@ export const summarizeArticle = createServerFn({ method: "POST" })
         error: null,
       };
     } catch (err) {
-      return { summary: null, error: aiError(err, "summarizeArticle failed") };
+      console.error("summarizeArticle failed", err);
+      return { summary: null, error: "AI request failed unexpectedly." };
     }
     // wordCount is intentionally unused; kept for potential future telemetry
     void 0;
