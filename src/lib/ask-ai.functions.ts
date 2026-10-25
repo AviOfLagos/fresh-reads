@@ -1,5 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { z as z4 } from "zod/v4";
+import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
+import { claude, MODEL, FALLBACK, aiError } from "./claude.server";
 
 const inputSchema = z.object({
   question: z.string().min(1).max(2000),
@@ -39,9 +42,7 @@ Rules:
 - No markdown headings, no emoji.`;
 
 function articleContext(a: z.infer<typeof inputSchema>["article"]): string {
-  const truncated = a.content
-    ? a.content.slice(0, 8000).replace(/\[\d+ chars\]$/, "")
-    : "";
+  const truncated = a.content ? a.content.slice(0, 8000).replace(/\[\d+ chars\]$/, "") : "";
   return [
     a.sourceName ? `SOURCE: ${a.sourceName}` : null,
     a.url ? `URL: ${a.url}` : null,
@@ -56,55 +57,37 @@ function articleContext(a: z.infer<typeof inputSchema>["article"]): string {
 export const askArticleQuestion = createServerFn({ method: "POST" })
   .inputValidator((input) => inputSchema.parse(input))
   .handler(async ({ data }): Promise<AskAiResult> => {
-    const apiKey = process.env.LOVABLE_API_KEY;
-    if (!apiKey) {
+    const ai = claude();
+    if (!ai) {
       return { answer: null, error: "AI is not configured." };
     }
 
-    const messages = [
-      { role: "system", content: SYSTEM_PROMPT },
-      {
-        role: "system",
-        content: `ARTICLE CONTEXT (the only source of truth):\n\n${articleContext(data.article)}`,
-      },
-      ...data.history.map((m) => ({ role: m.role, content: m.content })),
-      { role: "user", content: data.question },
-    ];
-
     try {
-      const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
-          messages,
-        }),
+      const res = await ai.beta.messages.create({
+        ...FALLBACK,
+        model: MODEL,
+        max_tokens: 4000,
+        // the article is data to answer from, in the system prompt with the rules
+        system: `${SYSTEM_PROMPT}\n\nARTICLE CONTEXT (the only source of truth):\n\n${articleContext(data.article)}`,
+        messages: [
+          ...data.history.map((m) => ({ role: m.role, content: m.content })),
+          { role: "user" as const, content: data.question },
+        ],
+        output_config: { effort: "low" },
       });
-
-      if (res.status === 429) {
-        return { answer: null, error: "Rate limited — try again shortly." };
+      if (res.stop_reason === "refusal") {
+        return { answer: null, error: "AI declined to answer this question." };
       }
-      if (res.status === 402) {
-        return { answer: null, error: "AI credits exhausted for this workspace." };
-      }
-      if (!res.ok) {
-        const text = await res.text().catch(() => "");
-        console.error("AI gateway error", res.status, text);
-        return { answer: null, error: `AI request failed (${res.status}).` };
-      }
-
-      const json = await res.json();
-      const answer = String(json.choices?.[0]?.message?.content ?? "").trim();
+      const answer = res.content
+        .flatMap((b) => (b.type === "text" ? [b.text] : []))
+        .join("")
+        .trim();
       if (!answer) {
         return { answer: null, error: "AI returned an empty response." };
       }
       return { answer, error: null };
     } catch (err) {
-      console.error("askArticleQuestion failed", err);
-      return { answer: null, error: "AI request failed unexpectedly." };
+      return { answer: null, error: aiError(err, "askArticleQuestion failed") };
     }
   });
 
@@ -129,108 +112,48 @@ context, and (if provided) the reader's last question and the AI's last answer
 to keep questions on-topic and non-repetitive.
 
 Rules:
-- Output ONLY a JSON array of 3 strings. No prose, no markdown, no code fences.
 - Each question must be under 80 characters.
 - Vary the angle: one factual, one critical / source-checking, one "what next".
 - Do not repeat the reader's last question.
 - No emoji.`;
 
-/**
- * Robustly extract a JSON array of strings from a model response that may
- * include code fences or stray prose.
- */
-function parseQuestions(text: string): string[] {
-  const cleaned = text
-    .replace(/```json\s*/gi, "")
-    .replace(/```/g, "")
-    .trim();
-  try {
-    const parsed = JSON.parse(cleaned);
-    if (Array.isArray(parsed)) {
-      return parsed
-        .filter((q): q is string => typeof q === "string")
-        .map((q) => q.trim())
-        .filter((q) => q.length > 0 && q.length <= 120)
-        .slice(0, 3);
-    }
-  } catch {
-    // Try to find a JSON array substring
-    const match = cleaned.match(/\[[\s\S]*\]/);
-    if (match) {
-      try {
-        const parsed = JSON.parse(match[0]);
-        if (Array.isArray(parsed)) {
-          return parsed
-            .filter((q): q is string => typeof q === "string")
-            .map((q) => q.trim())
-            .filter((q) => q.length > 0 && q.length <= 120)
-            .slice(0, 3);
-        }
-      } catch {
-        /* fall through */
-      }
-    }
-  }
-  return [];
-}
+const FollowupSchema = z4.object({ questions: z4.array(z4.string()) });
 
 export const suggestFollowupQuestions = createServerFn({ method: "POST" })
   .inputValidator((input) => followupSchema.parse(input))
   .handler(async ({ data }): Promise<FollowupsResult> => {
-    const apiKey = process.env.LOVABLE_API_KEY;
-    if (!apiKey) {
+    const ai = claude();
+    if (!ai) {
       return { questions: [], error: "AI is not configured." };
     }
 
     const userPayload = [
       `ARTICLE CONTEXT:\n${articleContext(data.article)}`,
-      data.lastUserQuestion
-        ? `\nREADER'S LAST QUESTION: ${data.lastUserQuestion}`
-        : "",
+      data.lastUserQuestion ? `\nREADER'S LAST QUESTION: ${data.lastUserQuestion}` : "",
       data.lastAiAnswer ? `\nAI'S LAST ANSWER: ${data.lastAiAnswer}` : "",
-      `\nReturn 3 follow-up questions as a JSON array of strings.`,
+      `\nReturn 3 follow-up questions.`,
     ]
       .filter(Boolean)
       .join("\n");
 
     try {
-      const res = await fetch(
-        "https://ai.gateway.lovable.dev/v1/chat/completions",
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${apiKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model: "google/gemini-2.5-flash",
-            messages: [
-              { role: "system", content: FOLLOWUP_SYSTEM },
-              { role: "user", content: userPayload },
-            ],
-          }),
-        },
-      );
-
-      if (res.status === 429) {
-        return { questions: [], error: "Rate limited." };
-      }
-      if (res.status === 402) {
-        return { questions: [], error: "AI credits exhausted." };
-      }
-      if (!res.ok) {
-        return { questions: [], error: `AI request failed (${res.status}).` };
-      }
-
-      const json = await res.json();
-      const text = String(json.choices?.[0]?.message?.content ?? "");
-      const questions = parseQuestions(text);
+      const res = await ai.beta.messages.parse({
+        ...FALLBACK,
+        model: MODEL,
+        max_tokens: 2000,
+        system: FOLLOWUP_SYSTEM,
+        messages: [{ role: "user", content: userPayload }],
+        output_config: { effort: "low", format: betaZodOutputFormat(FollowupSchema) },
+      });
+      const questions = (res.parsed_output?.questions ?? [])
+        .map((q) => q.trim())
+        .filter((q) => q.length > 0 && q.length <= 120)
+        .slice(0, 3);
       if (questions.length === 0) {
         return { questions: [], error: "AI returned no usable suggestions." };
       }
       return { questions, error: null };
     } catch (err) {
-      console.error("suggestFollowupQuestions failed", err);
-      return { questions: [], error: "AI request failed unexpectedly." };
+      return { questions: [], error: aiError(err, "suggestFollowupQuestions failed") };
     }
   });
