@@ -1,6 +1,11 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
+// Gemini through its OpenAI-compatible endpoint, with your own key
+// (GEMINI_API_KEY where the site runs). GEMINI_MODEL overrides the model.
+const AI_URL = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
+const AI_MODEL = process.env.GEMINI_MODEL || "gemini-3.8-flash";
+
 const inputSchema = z.object({
   articleId: z.string().min(1).max(200),
   title: z.string().min(1).max(500),
@@ -21,7 +26,7 @@ export interface SummarizeResult {
   error: string | null;
 }
 
-const SYSTEM_PROMPT = `You are a financial-newswire editor.
+const SYSTEM_PROMPT = `You are a news editor writing for software developers.
 Given an article, produce a concise brief.
 Rules:
 - Be factual, no speculation. If the article is too thin, leave bullets empty.
@@ -33,7 +38,7 @@ Rules:
 export const summarizeArticle = createServerFn({ method: "POST" })
   .inputValidator((input) => inputSchema.parse(input))
   .handler(async ({ data }): Promise<SummarizeResult> => {
-    const apiKey = process.env.LOVABLE_API_KEY;
+    const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
       return { summary: null, error: "AI is not configured." };
     }
@@ -52,14 +57,14 @@ export const summarizeArticle = createServerFn({ method: "POST" })
       .join("\n\n");
 
     try {
-      const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      const res = await fetch(AI_URL, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${apiKey}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
+          model: AI_MODEL,
           messages: [
             { role: "system", content: SYSTEM_PROMPT },
             { role: "user", content: userPrompt },
@@ -96,7 +101,7 @@ export const summarizeArticle = createServerFn({ method: "POST" })
         return { summary: null, error: "Rate limited — please try again in a moment." };
       }
       if (res.status === 402) {
-        return { summary: null, error: "AI credits exhausted for this workspace." };
+        return { summary: null, error: "AI quota exhausted — try again later." };
       }
       if (!res.ok) {
         const text = await res.text().catch(() => "");
@@ -120,7 +125,10 @@ export const summarizeArticle = createServerFn({ method: "POST" })
 
       const tldr = String(parsed.tldr ?? "").trim();
       const bullets = Array.isArray(parsed.bullets)
-        ? parsed.bullets.map((b) => String(b).trim()).filter(Boolean).slice(0, 5)
+        ? parsed.bullets
+            .map((b) => String(b).trim())
+            .filter(Boolean)
+            .slice(0, 5)
         : [];
       const whyItMatters = String(parsed.whyItMatters ?? "").trim();
 

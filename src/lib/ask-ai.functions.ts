@@ -1,6 +1,11 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
+// Gemini through its OpenAI-compatible endpoint, with your own key
+// (GEMINI_API_KEY where the site runs). GEMINI_MODEL overrides the model.
+const AI_URL = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
+const AI_MODEL = process.env.GEMINI_MODEL || "gemini-3.8-flash";
+
 const inputSchema = z.object({
   question: z.string().min(1).max(2000),
   history: z
@@ -56,7 +61,7 @@ function articleContext(a: z.infer<typeof inputSchema>["article"]): string {
 export const askArticleQuestion = createServerFn({ method: "POST" })
   .inputValidator((input) => inputSchema.parse(input))
   .handler(async ({ data }): Promise<AskAiResult> => {
-    const apiKey = process.env.LOVABLE_API_KEY;
+    const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
       return { answer: null, error: "AI is not configured." };
     }
@@ -72,14 +77,14 @@ export const askArticleQuestion = createServerFn({ method: "POST" })
     ];
 
     try {
-      const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      const res = await fetch(AI_URL, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${apiKey}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
+          model: AI_MODEL,
           messages,
         }),
       });
@@ -88,7 +93,7 @@ export const askArticleQuestion = createServerFn({ method: "POST" })
         return { answer: null, error: "Rate limited — try again shortly." };
       }
       if (res.status === 402) {
-        return { answer: null, error: "AI credits exhausted for this workspace." };
+        return { answer: null, error: "AI quota exhausted — try again later." };
       }
       if (!res.ok) {
         const text = await res.text().catch(() => "");
@@ -177,7 +182,7 @@ function parseQuestions(text: string): string[] {
 export const suggestFollowupQuestions = createServerFn({ method: "POST" })
   .inputValidator((input) => followupSchema.parse(input))
   .handler(async ({ data }): Promise<FollowupsResult> => {
-    const apiKey = process.env.LOVABLE_API_KEY;
+    const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
       return { questions: [], error: "AI is not configured." };
     }
@@ -195,7 +200,7 @@ export const suggestFollowupQuestions = createServerFn({ method: "POST" })
 
     try {
       const res = await fetch(
-        "https://ai.gateway.lovable.dev/v1/chat/completions",
+        AI_URL,
         {
           method: "POST",
           headers: {
@@ -203,7 +208,7 @@ export const suggestFollowupQuestions = createServerFn({ method: "POST" })
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            model: "google/gemini-2.5-flash",
+            model: AI_MODEL,
             messages: [
               { role: "system", content: FOLLOWUP_SYSTEM },
               { role: "user", content: userPayload },
@@ -216,7 +221,7 @@ export const suggestFollowupQuestions = createServerFn({ method: "POST" })
         return { questions: [], error: "Rate limited." };
       }
       if (res.status === 402) {
-        return { questions: [], error: "AI credits exhausted." };
+        return { questions: [], error: "AI quota exhausted." };
       }
       if (!res.ok) {
         return { questions: [], error: `AI request failed (${res.status}).` };
