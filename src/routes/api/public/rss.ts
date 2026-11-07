@@ -1,11 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
+import { SITE_URL } from "@/lib/news-types";
 
 // Public RSS feed of the latest articles.
 // Lets keyless automation services (IFTTT, Zapier, Feedly, newsletters)
 // pick up new stories — e.g. auto-post new articles to X without API keys.
-
-const SITE_URL = "https://fresh-reads.lovable.app";
 
 const GNEWS_BASE = "https://gnews.io/api/v4";
 

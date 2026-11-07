@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as BookmarksRouteImport } from './routes/bookmarks'
 import { Route as EventsRouteImport } from './routes/events'
 import { Route as SearchRouteImport } from './routes/search'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as ArticleIdRouteImport } from './routes/article.$id'
 import { Route as ApiPublicRssRouteImport } from './routes/api/public/rss'
 
@@ -36,6 +37,11 @@ const SearchRoute = SearchRouteImport.update({
   path: '/search',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ArticleIdRoute = ArticleIdRouteImport.update({
   id: '/article/$id',
   path: '/article/$id',
@@ -52,6 +58,7 @@ export interface FileRoutesByFullPath {
   '/bookmarks': typeof BookmarksRoute
   '/events': typeof EventsRoute
   '/search': typeof SearchRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/article/$id': typeof ArticleIdRoute
   '/api/public/rss': typeof ApiPublicRssRoute
 }
@@ -60,6 +67,7 @@ export interface FileRoutesByTo {
   '/bookmarks': typeof BookmarksRoute
   '/events': typeof EventsRoute
   '/search': typeof SearchRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/article/$id': typeof ArticleIdRoute
   '/api/public/rss': typeof ApiPublicRssRoute
 }
@@ -69,6 +77,7 @@ export interface FileRoutesById {
   '/bookmarks': typeof BookmarksRoute
   '/events': typeof EventsRoute
   '/search': typeof SearchRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/article/$id': typeof ArticleIdRoute
   '/api/public/rss': typeof ApiPublicRssRoute
 }
@@ -79,6 +88,7 @@ export interface FileRouteTypes {
     | '/bookmarks'
     | '/events'
     | '/search'
+    | '/sitemap.xml'
     | '/article/$id'
     | '/api/public/rss'
   fileRoutesByTo: FileRoutesByTo
@@ -87,6 +97,7 @@ export interface FileRouteTypes {
     | '/bookmarks'
     | '/events'
     | '/search'
+    | '/sitemap.xml'
     | '/article/$id'
     | '/api/public/rss'
   id:
@@ -95,6 +106,7 @@ export interface FileRouteTypes {
     | '/bookmarks'
     | '/events'
     | '/search'
+    | '/sitemap.xml'
     | '/article/$id'
     | '/api/public/rss'
   fileRoutesById: FileRoutesById
@@ -104,6 +116,7 @@ export interface RootRouteChildren {
   BookmarksRoute: typeof BookmarksRoute
   EventsRoute: typeof EventsRoute
   SearchRoute: typeof SearchRoute
+  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   ArticleIdRoute: typeof ArticleIdRoute
   ApiPublicRssRoute: typeof ApiPublicRssRoute
 }
@@ -138,6 +151,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SearchRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/article/$id': {
       id: '/article/$id'
       path: '/article/$id'
@@ -160,6 +180,7 @@ const rootRouteChildren: RootRouteChildren = {
   BookmarksRoute: BookmarksRoute,
   EventsRoute: EventsRoute,
   SearchRoute: SearchRoute,
+  SitemapDotxmlRoute: SitemapDotxmlRoute,
   ArticleIdRoute: ArticleIdRoute,
   ApiPublicRssRoute: ApiPublicRssRoute,
 }

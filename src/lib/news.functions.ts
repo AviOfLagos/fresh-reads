@@ -197,3 +197,19 @@ export const fetchNews = createServerFn({ method: "GET" })
       };
     }
   });
+
+// One Watchfire item by its page id ("wf-<feed id>"), for the article page's
+// server render: crawlers and shared links get the article, not an empty
+// cache. GNews items have no stable source to look up and return null.
+export const fetchWatchfireArticle = createServerFn({ method: "GET" })
+  .inputValidator((input: unknown) => z.object({ id: z.string().min(4).max(80) }).parse(input))
+  .handler(async ({ data }): Promise<Article | null> => {
+    if (!data.id.startsWith("wf-")) return null;
+    try {
+      const item = (await watchfireItems()).find((i) => "wf-" + i.id === data.id);
+      return item ? fromWatchfire(item) : null;
+    } catch (err) {
+      console.error("watchfire article lookup failed:", err);
+      return null;
+    }
+  });

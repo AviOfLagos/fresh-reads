@@ -57,6 +57,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
         content: "Supply-chain malware, compromised packages and exploited flaws, each with what to do.",
       },
       { property: "og:type", content: "website" },
+      { property: "og:site_name", content: "Watchfire" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:title", content: "Watchfire — what developers should know, and what to do" },
       {
@@ -70,7 +71,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
       {
         rel: "alternate",
         type: "application/rss+xml",
-        title: "Fresh Reads — Tech news feed",
+        title: "Watchfire — all alerts",
         href: "https://nexlabz.github.io/watchfire-feed/feed.xml",
       },
     ],
