@@ -175,7 +175,7 @@ export function ArticleSummary({ article }: { article: Article }) {
                 </button>
               </div>
               <p className="text-[10px] text-muted-foreground/70">
-                AI-generated · may contain errors. Powered by Lovable AI.
+                AI-generated · may contain errors. Powered by Gemini.
               </p>
             </>
           ) : null}

@@ -53,6 +53,7 @@ interface WatchfireItem {
   severity: "critical" | "high" | "info";
   summary: string;
   action: string;
+  image?: string | null;
 }
 
 // The feed is rebuilt every two hours; a few minutes of memory saves a fetch
@@ -83,7 +84,7 @@ function fromWatchfire(i: WatchfireItem): Article {
     description: i.summary || null,
     content: i.summary || null,
     url: i.url,
-    image: null,
+    image: i.image && i.image.startsWith("https://") ? i.image : null,
     publishedAt: i.published,
     source: { name: i.source, url: host },
     status: i.status,

@@ -1,5 +1,5 @@
 // User interests / personalization preferences.
-// Stored locally for now; could sync to Lovable Cloud per-user later.
+// Stored locally for now; could sync to Supabase per-user later.
 
 import type { CategoryId } from "@/lib/news-types";
 

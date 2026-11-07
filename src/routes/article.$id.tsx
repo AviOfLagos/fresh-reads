@@ -43,6 +43,13 @@ export const Route = createFileRoute("/article/$id")({
         ...(a.topics ?? []).map((t) => ({ property: "article:tag", content: t })),
         { name: "twitter:title", content: title },
         { name: "twitter:description", content: description },
+        ...(a.image
+          ? [
+              { property: "og:image", content: a.image },
+              { name: "twitter:card", content: "summary_large_image" },
+              { name: "twitter:image", content: a.image },
+            ]
+          : []),
       ],
       links: [{ rel: "canonical", href: url }],
       scripts: [
@@ -192,6 +199,8 @@ function ArticlePage() {
           <img
             src={article.image}
             alt={article.title}
+            referrerPolicy="no-referrer"
+            onError={(e) => (e.currentTarget.parentElement!.style.display = "none")}
             className="h-full w-full object-cover"
           />
         </div>
