@@ -45,4 +45,8 @@ export const CATEGORIES = [
 
 export const WATCHFIRE_FEED = "https://nexlabz.github.io/watchfire-feed/news.json";
 
+/** The public address: canonical URLs, the sitemap, RSS links and share cards. */
+export const SITE_URL = "https://watchfire.nexprove.com";
+export const SITE_NAME = "Watchfire";
+
 export type CategoryId = (typeof CATEGORIES)[number]["id"];

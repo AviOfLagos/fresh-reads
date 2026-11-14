@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, stripSearchParams } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { z } from "zod";
@@ -13,6 +13,7 @@ import { SourceFilter } from "@/components/source-filter";
 import { cacheArticles, getAllCached } from "@/lib/article-cache";
 import { useSources } from "@/lib/use-sources";
 import { useInterests } from "@/lib/use-interests";
+import { SITE_URL } from "@/lib/news-types";
 import { topicsToQuery, COUNTRY_OPTIONS } from "@/lib/interests";
 import { Sparkles } from "lucide-react";
 
@@ -24,6 +25,30 @@ const searchSchema = z.object({
 
 export const Route = createFileRoute("/")({
   validateSearch: zodValidator(searchSchema),
+  // "/" is the All alerts page itself, not a redirect to ?category=security
+  search: { middlewares: [stripSearchParams({ category: "security" })] },
+  // Watchfire tabs render their alerts on the server, so the HTML a search
+  // engine fetches has them. Tech news (GNews) stays client-only: it costs quota.
+  loaderDeps: ({ search }) => ({ category: search.category }),
+  loader: async ({ deps }) => {
+    if (deps.category === "technology") return null;
+    const res = await fetchNews({ data: { category: deps.category, max: 20, lang: "en" } });
+    return res.error ? null : res;
+  },
+  // each tab is its own page to a search engine: own title and canonical URL
+  head: ({ match }) => {
+    const category = match.search.category;
+    const label = CATEGORIES.find((c) => c.id === category)?.label;
+    const url = category === "security" ? `${SITE_URL}/` : `${SITE_URL}/?category=${category}`;
+    const title =
+      category === "security" || !label
+        ? "Watchfire — what developers should know, and what to do"
+        : `${label} security alerts and what to do — Watchfire`;
+    return {
+      meta: [{ title }, { property: "og:title", content: title }, { property: "og:url", content: url }],
+      links: [{ rel: "canonical", href: url }],
+    };
+  },
   component: FeedPage,
 });
 
@@ -31,6 +56,7 @@ function FeedPage() {
   const { category } = Route.useSearch();
   const { enabled } = useSources();
   const { interests } = useInterests();
+  const initial = Route.useLoaderData();
 
   // Build a personalized query from selected topics (only used on the
   // default "technology" tab so explicit category browsing still works).
@@ -54,6 +80,8 @@ function FeedPage() {
       if (res.error) throw new Error(res.error);
       return res;
     },
+    // the server-rendered list, for the unpersonalized query it matches
+    initialData: !topicQuery && !country ? (initial ?? undefined) : undefined,
   });
 
   useEffect(() => {

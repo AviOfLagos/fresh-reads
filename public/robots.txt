@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /bookmarks
+Disallow: /search
+
+Sitemap: https://watchfire.nexprove.com/sitemap.xml

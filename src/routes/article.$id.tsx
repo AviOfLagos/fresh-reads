@@ -9,9 +9,68 @@ import { ArticleSummary } from "@/components/article-summary";
 import { CommentsPanel } from "@/components/comments-panel";
 import { EvidencePanel } from "@/components/evidence-panel";
 import { AskAiPanel } from "@/components/ask-ai-panel";
-import type { Article } from "@/lib/news-types";
+import { SITE_NAME, SITE_URL, type Article } from "@/lib/news-types";
+import { fetchWatchfireArticle } from "@/lib/news.functions";
+
+const clip = (s: string, n: number) => (s.length > n ? s.slice(0, n - 1).trimEnd() + "…" : s);
 
 export const Route = createFileRoute("/article/$id")({
+  // Watchfire items render on the server, so search engines and link
+  // previews see the article; GNews items still come from the reader's cache.
+  loader: ({ params }) =>
+    params.id.startsWith("wf-") ? fetchWatchfireArticle({ data: { id: params.id } }) : null,
+  head: ({ loaderData, params }) => {
+    const url = `${SITE_URL}/article/${params.id}`;
+    if (!loaderData) {
+      // cache-only pages have nothing to show a crawler
+      return { meta: [{ name: "robots", content: "noindex" }] };
+    }
+    const a = loaderData;
+    const title = `${clip(a.title, 90)} — ${SITE_NAME}`;
+    const description = clip(
+      [a.description, a.action ? `What to do: ${a.action}` : ""].filter(Boolean).join(" "),
+      300,
+    );
+    return {
+      meta: [
+        { title },
+        { name: "description", content: description },
+        { property: "og:type", content: "article" },
+        { property: "og:title", content: title },
+        { property: "og:description", content: description },
+        { property: "og:url", content: url },
+        { property: "article:published_time", content: a.publishedAt },
+        ...(a.topics ?? []).map((t) => ({ property: "article:tag", content: t })),
+        { name: "twitter:title", content: title },
+        { name: "twitter:description", content: description },
+        ...(a.image
+          ? [
+              { property: "og:image", content: a.image },
+              { name: "twitter:card", content: "summary_large_image" },
+              { name: "twitter:image", content: a.image },
+            ]
+          : []),
+      ],
+      links: [{ rel: "canonical", href: url }],
+      scripts: [
+        {
+          type: "application/ld+json",
+          children: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "NewsArticle",
+            headline: clip(a.title, 110),
+            description,
+            datePublished: a.publishedAt,
+            mainEntityOfPage: url,
+            url,
+            keywords: a.topics,
+            isBasedOn: a.url,
+            publisher: { "@type": "Organization", name: SITE_NAME, url: SITE_URL },
+          }).replace(/</g, "\\u003c"),
+        },
+      ],
+    };
+  },
   component: ArticlePage,
   notFoundComponent: () => (
     <div className="mx-auto max-w-3xl px-4 py-16 text-center">
@@ -32,16 +91,16 @@ export const Route = createFileRoute("/article/$id")({
 
 function ArticlePage() {
   const { id } = Route.useParams();
+  const loaded = Route.useLoaderData();
   const router = useRouter();
-  const [article, setArticle] = useState<Article | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [article, setArticle] = useState<Article | null>(loaded);
+  const [loading, setLoading] = useState(!loaded);
   const { isBookmarked, toggle } = useBookmarks();
 
   useEffect(() => {
-    const cached = getCachedArticle(id);
-    setArticle(cached);
+    setArticle(loaded ?? getCachedArticle(id));
     setLoading(false);
-  }, [id]);
+  }, [id, loaded]);
 
   if (loading) {
     return (
@@ -140,6 +199,8 @@ function ArticlePage() {
           <img
             src={article.image}
             alt={article.title}
+            referrerPolicy="no-referrer"
+            onError={(e) => (e.currentTarget.parentElement!.style.display = "none")}
             className="h-full w-full object-cover"
           />
         </div>

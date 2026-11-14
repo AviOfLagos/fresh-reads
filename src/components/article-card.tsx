@@ -4,6 +4,7 @@ import { formatDistanceToNow } from "date-fns";
 import { useBookmarks } from "@/lib/bookmarks";
 import type { Article } from "@/lib/news-types";
 import { useState } from "react";
+import { ArticleCover } from "@/components/article-cover";
 
 interface Props {
   article: Article;
@@ -44,13 +45,12 @@ export function ArticleCard({ article, variant = "default", index = 0 }: Props) 
               src={article.image}
               alt={article.title}
               loading="lazy"
+              referrerPolicy="no-referrer"
               onError={() => setImgError(true)}
               className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
             />
           ) : (
-            <div className="flex h-full w-full items-center justify-center text-muted-foreground">
-              <img src="/watchfire.svg" alt="" className="h-12 w-12 opacity-50" />
-            </div>
+            <ArticleCover article={article} size="lg" />
           )}
           <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
           <div className="absolute left-3 top-3 flex items-center gap-2">
@@ -106,13 +106,12 @@ export function ArticleCard({ article, variant = "default", index = 0 }: Props) 
               src={article.image}
               alt=""
               loading="lazy"
+              referrerPolicy="no-referrer"
               onError={() => setImgError(true)}
               className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-110"
             />
           ) : (
-            <div className="flex h-full w-full items-center justify-center text-muted-foreground">
-              <img src="/watchfire.svg" alt="" className="h-6 w-6 opacity-50 sm:h-8 sm:w-8" />
-            </div>
+            <ArticleCover article={article} size="sm" />
           )}
         </div>
         <div className="flex flex-1 flex-col gap-0.5 min-w-0 sm:gap-1">
@@ -142,13 +141,12 @@ export function ArticleCard({ article, variant = "default", index = 0 }: Props) 
             src={article.image}
             alt={article.title}
             loading="lazy"
+              referrerPolicy="no-referrer"
             onError={() => setImgError(true)}
             className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center text-muted-foreground">
-            <img src="/watchfire.svg" alt="" className="h-10 w-10 opacity-50" />
-          </div>
+          <ArticleCover article={article} />
         )}
         <button
           onClick={handleBookmark}
