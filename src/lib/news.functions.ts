@@ -109,7 +109,9 @@ export const fetchNews = createServerFn({ method: "GET" })
         const q = data.query?.trim().toLowerCase();
         const items = (await watchfireItems()).filter(
           (i) =>
-            (data.category === "security" || i.topics.includes(data.category)) &&
+            (data.category === "security"
+              ? i.topics.some((t) => t !== "ai-platforms")
+              : i.topics.includes(data.category)) &&
             (!q || (i.title + " " + i.summary).toLowerCase().includes(q)),
         );
         return {

@@ -27,6 +27,8 @@ export interface NewsResponse {
 // Watchfire: what developers should know about, and what to do. Every tab but
 // "technology" reads the Watchfire feed (advisory databases, the researchers
 // who find supply-chain malware, security press); "technology" is GNews.
+// "ai-platforms" is the official news of the AI platforms developers build
+// on — releases, deprecations, outages — and stays out of "All alerts".
 export const CATEGORIES = [
   { id: "security", label: "All alerts" },
   { id: "npm", label: "npm" },
@@ -36,6 +38,7 @@ export const CATEGORIES = [
   { id: "ai-tools", label: "AI tools" },
   { id: "ci-cd", label: "CI/CD" },
   { id: "vulns", label: "Exploited & critical" },
+  { id: "ai-platforms", label: "AI platforms" },
   { id: "snare", label: "snare" },
   { id: "technology", label: "Tech news" },
 ] as const;

@@ -49,7 +49,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
       {
         name: "description",
         content:
-          "Supply-chain malware, compromised packages, AI-tool attacks and actively exploited flaws — from advisory databases and the researchers who find them, each with what to do.",
+          "Supply-chain malware, compromised packages, AI-tool attacks, exploited flaws and AI-platform changes — from advisory databases, the researchers who find them and the platforms' own feeds, each with what to do.",
       },
       { property: "og:title", content: "Watchfire — what developers should know, and what to do" },
       {
